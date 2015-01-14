@@ -1,0 +1,83 @@
+#!/bin/bash
+
+home="/home/git"
+
+cd "$home/intel_sync_to_kiev"
+echo "Begin fetching from repositories..."
+echo
+
+repos=(config_files denver_core denver_core_unitests services sv_driver denver)
+from_head_repos=(denver config_files)
+
+set -- "${@,,}"
+
+IFS=\|
+
+repo_pattern="${repos[*]}"
+from_head_pattern="${from_head_repos[*]}"
+unset IFS
+
+declare -A arr from_head
+
+error_help(){
+        IFS=\|
+        echo "Usage: $0 <${repos[*]}|all>"
+        exit 1
+}
+
+for arg; do
+	if [[ $arg = all ]]; then
+		all=1
+		break
+	fi
+
+        if [[ $arg = @($repo_pattern) ]]; then
+                continue
+        else
+                error_help
+        fi
+done
+
+[[ $all ]] &&  set -- "${repos[@]}"
+
+for i; do
+        if [[ $i != @($from_head_pattern) ]]; then
+                arr["$i"]=1
+        else
+                from_head["$i"]=1
+        fi
+        shift
+done
+for repo in "${!arr[@]}"; do
+        echo /usr/bin/git fetch -q "${repo}-intel"  2>&1
+        /usr/bin/git fetch -q "${repo}-intel" 2>&1
+
+        master_intel=$(/usr/bin/git rev-parse "refs/tags/${repo}-intel/Denver_Latest_Release^0")
+        master_kiev=$(/usr/bin/git rev-parse "refs/remotes/${repo}-kiev/master" 2>/dev/null)
+
+        if [[ $master_intel != "$master_kiev" ]]; then
+                echo "Pushing to ${repo}-kiev":
+                echo git push -q "${repo}-kiev" "+refs/tags/${repo}-intel/Denver_Latest_Release^0:refs/heads/master" "+refs/tags/${repo}-intel/*:refs/tags/*" 2>&1
+                git push -q "${repo}-kiev" "+refs/tags/${repo}-intel/Denver_Latest_Release^0:refs/heads/master" "+refs/tags/${repo}-intel/*:refs/tags/*" 2>&1
+                echo
+        else
+                echo "  tag 'Denver_Latest_Release' has not moved for ${repo}-intel - Skipping"
+        fi
+done
+
+for fromhead in "${!from_head[@]}"; do
+        echo /usr/bin/git fetch -q "${fromhead}-intel" 2>&1
+        /usr/bin/git fetch -q "${fromhead}-intel" 2>&1
+
+        master_intel=$(/usr/bin/git rev-parse "refs/remotes/${fromhead}-intel/master")
+        master_kiev=$(/usr/bin/git rev-parse "refs/remotes/${fromhead}-kiev/master" 2>/dev/null)
+
+        if [[ $master_intel != "$master_kiev" ]]; then
+                echo "Pushing to ${fromhead}-kiev":
+                echo git push -q "${fromhead}-kiev" "+refs/remotes/${fromhead}-intel/master:refs/heads/master" "+refs/tags/${fromhead}-intel/*:refs/tags/*" 2>&1
+                git push -q "${fromhead}-kiev" "+refs/remotes/${fromhead}-intel/master:refs/heads/master" "+refs/tags/${fromhead}-intel/*:refs/tags/*" 2>&1
+                echo
+        else
+                echo "  branch 'master' has not moved for ${fromhead}-intel - Skipping"
+        fi
+done

@@ -1,0 +1,19 @@
+#!/bin/bash
+
+usage () {
+cat <<EOF
+ Must provide directory to scan.
+
+ example:  $0 /home/foo /var /etc
+EOF
+ exit 1
+}
+
+
+[[ ! $@ ]] && usage
+for i; do
+	if [[ ! -d $i ]]; then
+		echo "$i: not a directory" && exit 1
+	fi
+done
+du -hx --time "$@" | grep -E '^([3-9][0-9][0-9]M|[0-9]+(\.[0-9])*G)[[:space:]]+'

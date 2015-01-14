@@ -1,0 +1,6 @@
+#!/bin/bash
+if ! [[ $git_ssh_key ]]; then
+	echo "git_login <username>"
+	exit 1
+fi
+ssh -i "$git_ssh_key" git@sync_git_kiev "$@"

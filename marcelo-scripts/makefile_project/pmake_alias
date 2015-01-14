@@ -1,0 +1,2 @@
+#!/bin/sh
+sudo /bin/sed -i -e "\$aalias pmake='/net/foobar/data/things/scripts/pmake'" -e "\_alias pmake='/net/foobar/data/things/scripts/pmake'_d;" /etc/profile.d/csealiases.sh

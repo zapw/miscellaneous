@@ -1,0 +1,154 @@
+#!/bin/bash
+###########################################
+##1'st parameter = family name -f FamilyName
+##2'nd parameter = product name -p ProductName
+##3'rd parameter = adapter name -l LibraryName(adapters)
+##################################################################################
+
+##################################################################################
+###########################################
+
+
+
+
+function PrintHelp {
+	echo "usage is:"
+	echo " 		-t Name -f FamilyName(with no C, eg 10Gs) -p ProductName(with no C ,eg Niantic)"
+}
+
+TNameExists=0
+FNameExists=0
+PNameExists=0
+while getopts ":t:f:p:yh" optname
+  do
+    case "$optname" in
+      "t")
+	TNameExists=1
+	TName="$OPTARG"
+        ;;
+      "f")
+	FNameExists=1
+	FName="$OPTARG"
+        ;;
+      "p")
+	PNameExists=1
+	PName="$OPTARG"
+        ;;
+      "h")
+	PrintHelp
+	exit -1
+	;;
+      "?")
+        echo "Unknown option $OPTARG"
+	PrintHelp
+	exit -1
+        ;;
+      ":")
+        echo "No argument value for option $OPTARG"
+	PrintHelp
+	exit -1
+        ;;
+      *)
+      # Should not occur
+        echo "Unknown error while processing options"
+        ;;
+    esac
+  done
+
+if [ "$FNameExists" -ne 1 ]
+then
+	echo "option -f missing, -h for help"
+	exit -1
+fi
+if [ "$PNameExists" -ne 1 ]
+then
+	echo "option -p missing, -h for help"
+	exit -1
+fi
+
+if [ "$TNameExists" -ne 1 ]
+then
+	echo "option -t missing, -h for help"
+	exit -1
+fi
+
+
+
+##########infrastructure##################
+
+rm -rf `find ../TemplateTeam/ -name CVS`
+
+
+cd infrastructure/products/inc/
+cp ../../../../TemplateTeam/infrastructure/products/inc/CProductNAMETest.h "C${PName}Test.h"
+cd ../src/
+cp ../../../../TemplateTeam/infrastructure/products/src/CProductNAMETest.cpp "C${PName}Test.cpp"
+
+cd ../
+
+sed -i "s/ProductNAME/${PName}/g" "src/C${PName}Test.cpp"
+sed -i "s/ProductNAME/${PName}/g" "inc/C${PName}Test.h"
+sed -i "s/FamilyNAME/${FName}/g" "src/C${PName}Test.cpp"
+sed -i "s/FamilyNAME/${FName}/g" "inc/C${PName}Test.h"
+
+cd ../../
+
+##########################################################################
+##looks like we are done with infrastructure
+##########################################
+
+cd tests/
+cd products/
+
+
+mkdir "$PName"
+cd "$PName"
+cp -r ../../../../TemplateTeam/tests/products/TemplateProductNAME/* ./
+#########remove cvs folders from here ##########
+
+###############continue working#################
+
+mv src/CFirstProductTest.cpp "src/C${PName}FirstTest.cpp"
+mv inc/CFirstProductTest.h "inc/C${PName}FirstTest.h"
+sed -i "s/FAMILY_ADAPTERS_INCLUDE/$FName/g" src/Makefile
+sed -i "s/FAMILY_ADAPTERS_INCLUDE/$FName/g" Makefile
+
+
+
+sed -i "s/CFirstProductTest/C${PName}FirstTest/g" "inc/C${PName}FirstTest.h"
+sed -i "s/CFirstProductTest/C${PName}FirstTest/g" "src/C${PName}FirstTest.cpp"
+sed -i "s/ProductNAME/${PName}/g" "inc/C${PName}FirstTest.h"
+sed -i "s/ProductNAME/${PName}/g" "src/C${PName}FirstTest.cpp"
+
+
+cd ../../../
+
+for makefile in $(find ./ -name "Makefile");
+do
+	sed -i "s/TemplateTeamNAME/${TName}/g" $makefile
+	cp ../../GNUmakefile "${makefile%/*}"
+done
+
+
+
+
+#########add includes to infrastructure#########
+
+
+#cd infrastructure/products/src
+
+#CurrentAdapters=`grep -w "ADAPTERS_INC ="  Makefile`
+#goodCurrentAdapter=`echo "$CurrentAdapters"|sed 's?/?\\\/?g'`
+#NewAdapters="${goodCurrentAdapter} ${FName} "
+
+#sed -i "s/${goodCurrentAdapter}/${NewAdapters}/g" "Makefile"
+
+
+
+###############################################
+
+
+
+
+
+

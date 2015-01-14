@@ -1,0 +1,30 @@
+################################################################################
+# 
+# Copyright(c) 1999 - 2010 Intel Corporation. All rights reserved.
+# 
+# Makefile for building teraram driver
+#
+
+#
+################################################################################
+#ARCH := $(shell uname -m | sed 's/i.86/i386/')
+
+
+ccflags-y += -I$(src)/../sv_shared/
+ccflags-y += -I$(src)/../api/inc/
+
+ccflags-y += -DTERARAM
+ccflags-y += -O2     # optimize for performance
+#ccflags-y += -DMINI_TERARAM
+#ccflags-y += -Winline
+
+######## debug flags####################
+#ccflags-y += -DWRITE_REG_DUMP
+  
+obj-m += teraram.o
+
+teraram-y := tram.o \
+		tram_char_ctrl.o \
+		tram_ctrl_cmd.o	\
+		../sv_shared/sv_mem.o \
+		tram_mem.o

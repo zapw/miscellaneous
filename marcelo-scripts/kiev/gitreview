@@ -1,0 +1,6 @@
+[gerrit]
+scheme=http
+host=10.103.106.199
+port=8080
+project=fwkiev_team.git
+defaultbranch=master

@@ -1,0 +1,140 @@
+#!/bin/bash
+#
+# autossh_gerrit        Start up autossh_gerrit with kiev
+#
+# chkconfig: 2345 55 25
+# description: set up connection with kiev
+#
+# processname: autossh_gerrit
+# pidfile: /var/run/autossh_gerrit.pid
+
+### BEGIN INIT INFO
+# Provides: sshd
+# Required-Start: $local_fs $network $syslog
+# Required-Stop: $local_fs $syslog
+# Should-Start: $syslog
+# Should-Stop: $network $syslog
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: set up connection with kiev
+# Description:      set up connection with kiev
+### END INIT INFO
+
+# source function library
+. /etc/rc.d/init.d/functions
+
+# pull in sysconfig settings
+[ -f /etc/sysconfig/autossh_gerrit ] && . /etc/sysconfig/autossh_gerrit
+
+RETVAL=0
+prog="autossh"
+lockfile=/var/lock/subsys/${prog}_gerrit
+
+# Some functions to make the below more readable
+AUTOSSH_PIDFILE=/var/run/autossh_gerrit/autossh_gerrit.pid
+PID_FILE=$AUTOSSH_PIDFILE
+
+AUTOSSH=/usr/bin/autossh
+runlevel=$(set -- $(runlevel); eval "echo \$$#" )
+
+start()
+{
+        [ -x "$AUTOSSH" ] || exit 5
+        [[ -f $PID_FILE ]] && kill -0 $(<$PID_FILE) 2>/dev/null  && exit 1
+        echo -n $"Starting ${prog}_gerrit: "
+        runuser -s /bin/bash git -c "AUTOSSH_PIDFILE=\"$PID_FILE\" \"$prog\" -M0 -N -f -- -o ServerAliveInterval=8 -o ServerAliveCountMax=2 -L :8080:localhost:8080 sshtunnel@lab-git" &&
+        success || failure
+
+        RETVAL=$?
+        [ $RETVAL -eq 0 ] && touch $lockfile
+        echo
+        return $RETVAL
+}
+
+stop()
+{
+        echo -n $"Stopping ${prog}_gerrit: "
+        killproc -p $PID_FILE $AUTOSSH
+        RETVAL=$?
+        # if we are in halt or reboot runlevel kill all running sessions
+        # so the TCP connections are closed cleanly
+        if [ "x$runlevel" = x0 -o "x$runlevel" = x6 ] ; then
+            trap '' TERM
+            killall $prog 2>/dev/null
+            trap TERM
+        fi
+        [ $RETVAL -eq 0 ] && rm -f $lockfile
+        echo
+}
+
+reload()
+{
+        stop
+        start
+}
+
+restart() {
+        stop
+        start
+}
+
+force_reload() {
+        restart
+}
+
+rh_status() {
+        status -p $PID_FILE autossh_gerrit
+}
+
+rh_status_q() {
+        rh_status >/dev/null 2>&1
+}
+
+case "$1" in
+        start)
+                #rh_status_q && exit 0
+                start
+                ;;
+        stop)
+                #if ! rh_status_q; then
+                #       rm -f $lockfile
+                #       exit 0
+                #fi
+                stop
+                ;;
+        restart)
+                restart
+                ;;
+        reload)
+                rh_status_q || exit 7
+                reload
+                ;;
+        force-reload)
+                force_reload
+                ;;
+        condrestart|try-restart)
+                rh_status_q || exit 0
+                if [ -f $lockfile ] ; then
+                        do_restart_sanity_check
+                        if [ $RETVAL -eq 0 ] ; then
+                                stop
+                                # avoid race
+                                sleep 3
+                                start
+                        else
+                                RETVAL=6
+                        fi
+                fi
+                ;;
+        status)
+                rh_status
+                RETVAL=$?
+                if [ $RETVAL -eq 3 -a -f $lockfile ] ; then
+                        RETVAL=2
+                fi
+                ;;
+        *)
+                echo $"Usage: $0 {start|stop|restart|reload|force-reload|condrestart|try-restart|status}"
+                RETVAL=2
+esac
+exit $RETVAL

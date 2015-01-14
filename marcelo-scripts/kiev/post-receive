@@ -1,0 +1,57 @@
+#!/bin/bash
+
+socket=/var/run/git_post_receive/socket.file
+updrepo=$(git archive --format=tar  HEAD ./.updrepo  | tar  xf - -O)
+
+if (( $? != 0 )); then
+        echo 'file ".updrepo" missing?'
+        exit 1
+fi
+
+repos=(config_files denver_core denver_core_unitests services sv_driver denver)
+
+declare -A arr
+shopt -s nocasematch
+
+while IFS='= ' read -r var value; do
+
+        for repo in "${repos[@]}"; do
+                if [[ $repo == $var ]]; then
+                        if [[ $value == @(true|1|yes) ]]; then
+                                arr["$repo"]=1
+                        fi
+                fi
+        done
+
+done <<<"$updrepo"
+
+shopt -u nocasematch
+if (( ${#arr[@]} > 0 )); then
+
+	timeo=10
+        trap 'kill $COPROC_PID >/dev/null 2>&1' EXIT
+
+        coproc nc -w $timeo -U "$socket"
+        printf "       \r"
+
+        sleep 1
+        kill -0 "$COPROC_PID" 2>/dev/null || exit 1
+
+        echo "${!arr[@]}" >&${COPROC[1]} 2>/dev/null || exit 1
+        while IFS= read -r -u ${COPROC[0]} line; do
+                if [[ $line == TERMINATE ]]; then
+                        exit 0
+                else
+                        echo "$line"
+                fi
+        done
+
+	if ! kill -0 "$COPROC_PID" 2>/dev/null; then
+		echo "No data received for $timeo seconds, giving up..."
+		exit 1
+	fi
+        exit 0
+else
+        echo "Nothing to update in kiev"
+        exit 0
+fi

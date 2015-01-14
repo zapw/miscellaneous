@@ -1,0 +1,5 @@
+ADAPTER_NAME := IPs/someadapter
+skip_dirs :=
+NAME := somename
+LIBS := $(FINAL_LIBS)
+include ../../../includes/lib.mk

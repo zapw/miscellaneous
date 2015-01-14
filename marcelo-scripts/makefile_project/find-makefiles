@@ -1,0 +1,55 @@
+write script to:
+ scan for empty dirs so later add rule to skip them:
+	find -type d -empty
+
+dirs only with a Makefile
+find . -type f -name Makefile -execdir bash -c 'shopt -s nullglob ; entries=(*); ((${#entries[@]} == 1)) && echo $PWD/{}'  \;
+
+dirs with no source files or Makefile
+for i in */ ; do { printf "%s\n" $i/* |  grep -q -E -v '(\.c(pp)?$|Makefile)' ;} && echo $i ; done
+
+only specified dirs:
+exclude these dirs
+dirs=$(printf "%s\n" */|egrep -v '(CeqTests|SecurityTests|src)' )
+
+ so later add rule to skip them
+
+dirs with content but no Makefile and no other subdirs
+ so later add rule to skip them
+
+dirs with content but no Makefile but with more content
+ so later add rule to skip them
+
+dirs with content that isn't more dirs and Makefile
+dirs with content that is more dirs and Makefile
+
+/home/marceloe/works.mod/Denver/teams/1Gs_team/tests
+
+
+for i in * ; do find $i -type d ; done
+
+get md5sum
+for i in */ ; do md5sum $i/Makefile ; done
+
+
+copy:
+ for i in */ ; do cp AddressSpace/Makefile  $i/ ; done
+
+
+copy from includes the src files
+grep -R '_src.mk$' | awk -F'[ :]' '{ sub(/.+\//,"",$3) ; system("/bin/cp ../includes/"$3" "$1) }'
+
+
+change team name:
+for file in $(grep -R some_team | cut -d: -f1) ; do sed -i /some_team/s/some_team/10Gs_team/ $file ; done
+
+copy submake:
+
+for file in $(grep -R 'submake.mk$' | cut -d: -f1) ;  do cp /tmp/Makefile $file ; done
+
+grep -R all_lib
+grep -R EXTRA
+grep -R CFLA
+grep -R CXXF
+
+

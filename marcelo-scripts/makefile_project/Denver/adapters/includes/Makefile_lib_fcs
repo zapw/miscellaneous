@@ -1,0 +1,6 @@
+ADAPTER_NAME := FCs/someadapter
+skip_dirs :=
+NAME := somename
+LIBS = $(FC_DEP_IPS_ADAPTERS_FINAL_LIBS)
+
+include ../../includes/lib.mk

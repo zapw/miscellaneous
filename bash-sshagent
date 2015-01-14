@@ -1,0 +1,19 @@
+#ssh-agent, put in ~/.bash_profile
+if [[ -f ".ssh_agent" && ! $SSH_AUTH_SOCK ]]; then
+     eval "$(<.ssh_agent)"
+fi
+
+ssh-add -L &>/dev/null
+returnval=$?
+
+if (( returnval == 1 || returnval == 0 )); then
+       ssh-add
+elif ((  returnval == 2 )); then
+       rm ".ssh_agent" &>/dev/null
+       process="$(ps -C ssh-agent -o pid=)"
+       [[ $process ]] && kill $process
+       out=$(ssh-agent)
+       eval "$out"
+       ssh-add
+       declare -p SSH_AUTH_SOCK SSH_AGENT_PID >.ssh_agent
+fi

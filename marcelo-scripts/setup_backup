@@ -1,0 +1,53 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use File::Copy;
+
+my $rsnap_package = '/net/foobar/data/things/packages/rsnapshot/rsnapshot-1.4.2-3.fc20.noarch.rpm';
+my $blockdev = '/dev/sda1';
+my $append_to_file = 1;
+my ($device,$path,$variable);
+
+#Add /data mount point to /etc/fstab, check if one already exists and replace it or append if it dosen't exist.
+open my $fh, '/etc/fstab' or die $!;
+open my $fh_tmp, '>', '/etc/fstab.mod' or die $!;
+open my $fh_var, ">", \$variable;
+
+my $uuid = qx#blkid $blockdev -s UUID -o value#;
+chomp $uuid;
+
+die $blockdev, " not found" if $uuid eq '';
+
+my $string = "UUID=$uuid\t/data\text4\tdefaults\t0 0";
+
+while (<$fh>){
+	$append_to_file = 0 if s#^\S+\s+/data/?\s+.+$#$string#;
+	print $fh_var $_;
+}
+
+print $fh_var $string, "\n" if $append_to_file;
+print $fh_tmp $variable;
+
+move("/etc/fstab.mod","/etc/fstab") or die $!;
+#########
+
+! -e '/data' and ( mkdir '/data' or die "Unable to create directory /data" );
+
+my $error = qx(umount /data 2>&1);
+die $error if $error ne '' and $error !~ /not mounted/;
+$error = qx(mount /data);
+die $error if $error ne '';
+
+
+if (system ("rpm -q rsnapshot &>/dev/null") != 0){
+	system 'rpm' ,'-hUv', $rsnap_package;
+}
+
+copy('/etc/rsnapshot.conf', "/etc/rsnapshot.conf.orig");
+copy('/net/foobar/data/things/packages/rsnapshot/rsnapshot.conf', '/etc/rsnapshot.conf');
+copy('/net/foobar/data/things/packages/rsnapshot/rsnapshot.cron', '/etc/cron.d/rsnapshot');
+chown 0,0, '/etc/cron.d/rsnapshot';
+chmod '0644', '/etc/cron.d/rsnapshot';
+
+END { unlink '/etc/fstab.mod' }

@@ -1,0 +1,20 @@
+################################################################################
+#
+#
+# Copyright(c) 1999 - 2009 Intel Corporation. All rights reserved.
+#
+# Makefile for building igb sv driver
+#
+################################################################################
+
+ccflags-y += -I$(src)/../../sv_shared/
+ccflags-y += -I$(src)/../inc/
+ccflags-y += -I$(src)/../api/inc/
+ccflags-y += -I$(src)/../../api/inc/
+
+ccflags-y += -O2     # optimize for performance
+ccflags-y += -Wno-unused-value
+
+obj-m += sv_pci.o
+
+sv_pci-y := pci_ctrl.o pci_ops.o

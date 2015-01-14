@@ -1,0 +1,30 @@
+#!/bin/sh
+find . -name Makefile ! -path ./Makefile -exec /bin/sh -c 'cp -v GNUmakefile $(dirname {})' \;
+
+#This script copies GNUmakefile from this directory to ALL paths where a file named 'Makefile' exists
+
+#the purpose of GNUmakefile is to compute the number of processing units to pass to make's -j switch.
+
+#if a 'GNUmakefile' file exists make will read that instead of 'Makefile', inside GNUmakefile there is a recipe that invokes make using -f flag 'make -f Makefile ... _parallel=1'
+#( preserving any goals/targets variables and switches passed to make )
+
+#this will start a new instance of make but this time loading the file 'Makefile'
+
+#on sub-invocations of make - per example if there exists a "$(MAKE) -C dir/" recipe in the Makefile, again GNUmakefile will be read under "dir/" if it exists but this time
+#it shall skip the computation part and just include the file 'Makefile' and continue its bussiness it does so by checking if the variable '_parallel' has been defined
+
+
+#if a -j switch has already been provided when make was first invoked it will use that instead of calculating a different value
+
+#The way GNUmakefile calcuates what number to pass down to -j is by:
+# 1) inspecting system available free memory
+# 2) making a calculated guess that each g++/gcc process takes about 180MB of memory on worse case scenario 
+# 3) using 'nproc' command to return the number of available processing units in the system
+#
+#
+#for parallel compilation to work without providing '-j' switch on command line a GNUmakefile need only exist on the directory where make is FIRST invoked
+#altought the previous statement is true it's desirable to copy GNUmakefile to all directories containing a 'Makefile' since then make can be started from any of these directories using parallel compilation described above. 
+
+
+#per example if *only* the root source tree of services contained the file GNUmakefile then parallel compilation would work only if make was invoked on the root source tree of services
+# "make -C DescriptorFields/" or "cd DescriptorFields && make"  would not compile DescriptorFields in parallel

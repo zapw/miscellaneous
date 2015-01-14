@@ -1,0 +1,4 @@
+ADAPTERS := IPs/Eth/1Gs IPs/Eth/10Gs IPs/Eth/Generic IPs/Eth/BMC
+EXTRA_TEAM_INC := 
+EXTRA_TEAM_LIB := -lpthread
+TEAM_CROSS_INFRA = -I$(TEAM_INFRA)/cross

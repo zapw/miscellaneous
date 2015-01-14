@@ -1,0 +1,8 @@
+#every 7min
+*/7 * * * * root /usr/bin/rsnapshot -c /etc/rsnapshot.conf alpha
+#every day at 23:00pm
+0 23 * * *  root /usr/bin/rsnapshot -c /etc/rsnapshot.conf-1 beta
+#every friday at 2am
+#0 2 * * fri root /usr/bin/rsnapshot weekly
+#every 1st of month at 4am
+#0 4 1 * * root /usr/bin/rsnapshot monthly

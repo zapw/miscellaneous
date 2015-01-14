@@ -1,0 +1,370 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use POSIX();
+use Term::Cap;
+use File::Find;
+use IPC::Open3;
+use IO::Select;
+use Symbol 'gensym';
+use File::Basename;
+
+my $termios   = POSIX::Termios->new;
+my $term      = Term::Cap->Tgetent( { OSPEED => $termios->getospeed } );
+my $arch      = ( POSIX::uname() )[4];
+my $clear_eol = $term->Tputs( 'ce', '1', '' );
+
+my %repoquery;
+$repoquery{dnf} = \"dnf repoquery --arch=$arch,noarch";
+$repoquery{cmd} = \"repoquery --arch=$arch,noarch -f";
+
+my @ready;
+my $repoquery_ref;
+my @dirs;
+my %foundpackages;
+my %notfound;
+my %all_libs_hash;
+my %inhouselibs;
+my %inhousecmds;
+my %makefile;
+my %missing_command;
+my %all_command_exist;
+my %found_command;
+my $pattern           = qr/(?:(?:-[\d.]+|\.)(?:so|a)\b.*\z)/;
+my $pattern_link_libs = qr/\s+-l\s*(\S+)/;
+my $pattern_inhouse_libs_shared =
+  qr#(?:\s+|^)(?:-o.*?(?:lib)?([\w.\-\d]+)\.so\b)#;
+my $pattern_inhouse_libs_static =
+  qr#(?:\s+|^)(?:(?:-o|ar).*?(?:lib)?([\w.\-\d]+)\.a\b)#;
+
+my $pattern_touch_object_file =
+  qr/^make(?:\[\d+\])?: \*\*\* No rule to make target .(.+\.o)., needed by/;
+my $pattern_skip_comment_or_make = qr/(?:^(?:\s*#|make(?:[\d+])?\s))/;
+my $pattern_qmake = qr#(?:^\s*(?:[\d\w\-.+/]+qmake|qmake)(?:\s|$))#;
+my $pattern_cmdname =
+  qr#(?:^\s*(?:[\d\w\-.+/]+[\d\w\-.+]+|[\d\w\-.+]+)(?:\s|$))#;
+my $pattern_extract_cmd1 = qr/\`(.+?)\`/;
+my $pattern_extract_cmd2 = qr#\$\((.+?)\)#;
+
+my @make =
+  qw/make MAKE_RESTARTS=1 -k -B -n --no-print-directory default all debug load drivers clib stlib/;
+
+if ( system('repoquery -h >/dev/null 2>&1') == 0 ) {
+    $repoquery_ref = $repoquery{cmd};
+}
+elsif ( grep { /\Arepoquery\W/ } qx#dnf 2>/dev/null# ) {
+    $repoquery_ref = $repoquery{dnf};
+}
+else { die "dnf repoquery or repoquery command not found" }
+
+@ARGV ? ( @dirs = @ARGV ) : ( @dirs = "./" );
+
+open my $logfile, '>', "$ENV{'HOME'}/.scanlibs"
+  or die "Unable to open $ENV{'HOME'}/.scanlibs for writing $!";
+
+print "Opened log file at $ENV{'HOME'}/.scanlibs\n";
+
+print "Running ", "'", ( join " ", @make ), "'", " on file:\n";
+finddepth( \&getlibs, @dirs );
+
+sub getlibs {
+    if ( $_ eq "Makefile" ) {
+        print $File::Find::name, $clear_eol, "\r";
+        my ( @touch_files, @delete_files, %qmake_done_lines ) = ();
+      MAKE: my ( $out, $err, $sel, $cmd_pid ) = run(@make);
+        local $SIG{ALRM} = sub { kill 'TERM', $cmd_pid };
+        alarm 60;
+        my ( $out_output, $out_output_tmp, $err_output, $err_output_tmp ) =
+          ("") x 4;
+        while ( @ready = $sel->can_read ) {
+            for my $fh (@ready) {
+                if ( $fh == $err ) {
+                    my $err_output_tmp;
+                    unless ( sysread $err, $err_output_tmp, 4096 ) {
+                        $sel->remove($err);
+                        $err->close;
+                        next;
+                    }
+                    $err_output .= $err_output_tmp;
+                }
+                elsif ( $fh == $out ) {
+                    my $out_output_tmp;
+                    unless ( sysread $out, $out_output_tmp, 4096 ) {
+                        $sel->remove($out);
+                        $out->close;
+                        next;
+                    }
+                    $out_output .= $out_output_tmp;
+                }
+            }
+        }
+        waitpid( -1, 0 );
+        alarm 0;
+        for ( split m#$/#, $err_output ) {
+            if (/$pattern_touch_object_file/g) {
+                print $logfile substr( $_, $-[0] ), "\n";
+                push @touch_files, $1;
+                next;
+            }
+        }
+        for (@touch_files) {
+            open( my $fh, '>', $_ ) or die "Failed to create: '$_' $!\n";
+            close $fh;
+        }
+        unlink @delete_files;
+        @delete_files = @touch_files;
+        if (@touch_files) {
+            @touch_files = ();
+            goto MAKE;
+        }
+
+        my ( %tmp_command, @qmake_lines ) = ();
+        for ( split m#$/#, $out_output ) {
+            next if /$pattern_skip_comment_or_make/;
+            if (/$pattern_qmake/) {
+                push @qmake_lines, $_;
+            }
+            s/$pattern_extract_cmd1/extract_cmd($1,$File::Find::name)/ge;
+            s/$pattern_extract_cmd2/extract_cmd($1,$File::Find::name)/ge;
+            push @{ $makefile{$File::Find::name} }, $_;
+            if (/$pattern_cmdname/) {
+                $tmp_command{ ( split " ", $_, 2 )[0] } = $File::Find::name;
+            }
+        }
+        for my $command ( keys %tmp_command ) {
+            next if exists $all_command_exist{$command};
+            my $type = qx(type $command 2>&1 >/dev/null);
+            if ( $type =~ m#(?:not found$)# ) {
+                ( $missing_command{ ( fileparse($command) )[0] }
+                      ->{$File::Find::name} = 1 );
+            }
+            else { $all_command_exist{$command} = 1 }
+        }
+        unless ( exists $missing_command{"qmake"} ) {
+            for (@qmake_lines) {
+                system($_) == 0 or die $! unless exists $qmake_done_lines{$_};
+            }
+        }
+        my $rerunmake = 0;
+        for (@qmake_lines) {
+            unless ( $qmake_done_lines{$_} or exists $missing_command{"qmake"} )
+            {
+                $qmake_done_lines{$_} = 1;
+                $rerunmake = 1;
+            }
+        }
+        goto MAKE if $rerunmake;
+    }
+}
+
+for my $makefile ( keys %makefile ) {
+    for ( @{ $makefile{$makefile} } ) {
+        my @all_libs_array = /$pattern_link_libs/g if /^(?:g\+\+|c\+\+|gcc|cc)/;
+        if (/$pattern_inhouse_libs_shared/) {
+            inhouse( 'shared', \$makefile, $1 );
+        }
+        elsif (/$pattern_inhouse_libs_static/) {
+            inhouse( 'static', \$makefile, $1 );
+        } #elsif ( my ($match) = grep { defined } m#(?:^(?:g++|gcc).+(?:-o\s*(?:[^\s]+?/([^/\s]+)|/?([^/\s]+))(?<!\.o)(?:$|\s)))# ){ #http://perldoc.perl.org/perlre.html#Special-Backtracking-Control-Verbs #http://www.perlmonks.org/?node_id=924643
+          # inhouse('cmd',\$makefile,$match);
+          #}
+        my @tmp_all_libs;
+        for (@all_libs_array) {
+            push @tmp_all_libs, ( fileparse( $_, $pattern ) )[0] =~ s/^lib//r;
+        }
+        @all_libs_hash{@tmp_all_libs} = (1) x @tmp_all_libs;
+    }
+}
+
+delete @all_libs_hash{ keys %inhouselibs };
+delete @missing_command{ keys %inhousecmds };
+
+print "Searchig packages for libs:", $clear_eol;
+
+my @ldconfig = qx/ldconfig -p/;
+my %ldconfig_paths;
+for (@ldconfig) {
+    chomp;
+    $ldconfig_paths{ dirname( ( split( " ", $_ ) )[-1] ) } = 1;
+}
+for my $key ( sort keys %all_libs_hash ) {
+
+    #popen or IPC::Open* or IPC::Run  then run small progress bar
+    my ( @packages, $newkey );
+    print "\n";
+    unless ( grep { /lib${key}\.so/ } @ldconfig ) {
+        for ( keys %ldconfig_paths ) {
+            if ( $newkey = readlink "${_}/lib${key}.so" ) {
+                $newkey =
+                  ( ( fileparse( $newkey, $pattern ) )[0] =~ s/^lib//r );
+                last;
+            }
+        }
+    }
+
+    for my $libtype (qw/.so .a/) {
+        if ( defined $newkey ) {
+            print "(symlink lib$key.so) */lib${newkey}${libtype}";
+            $key = $newkey;
+            undef $newkey;
+        }
+        else {
+            print " */lib${key}${libtype}";
+        }
+        @packages = grep { /(?:$arch|noarch)\Z/ }
+          qx#$$repoquery_ref \*/lib${key}${libtype}#;
+        last if @packages;
+    }
+    if (@packages) {
+        @{ $foundpackages{$key} } = @packages;
+        print " Found", $clear_eol;
+    }
+    else {
+        $notfound{$key} = 1;
+        print " Not found", $clear_eol;
+    }
+}
+
+if ( keys %missing_command ) {
+    print "\nQuerying for missing commands:\n";
+    for my $key ( sort keys %missing_command ) {
+        print " */$key";
+        my @packages =
+          grep { /(?:$arch|noarch)\Z/ } qx#$$repoquery_ref \*/$key#;
+        if (@packages) {
+            @{ $found_command{$key} } = @packages;
+            print " Found", $clear_eol;
+        }
+        else {
+            print " Not found", $clear_eol;
+        }
+        print "\n";
+    }
+}
+
+delete @missing_command{ keys %found_command };
+
+print "\nFound packages for libs:";
+if ( keys %foundpackages ) {
+    for my $key ( sort keys %foundpackages ) {
+        if ( @{ $foundpackages{$key} } > 1 ) {
+            print "\nLibrary lib$key found in:\n\t", join "\t",
+              @{ $foundpackages{$key} };
+        }
+        else {
+            print "\nLibrary lib$key found in: ", join "\t",
+              @{ $foundpackages{$key} };
+        }
+    }
+}
+else {
+    print "\nNone\n";
+}
+
+print "\nIn house libs: \n";
+if ( keys %inhouselibs ) {
+    for my $key ( sort keys %inhouselibs ) {
+        if ( @{ $inhouselibs{$key} } > 1 ) {
+            print "\nLibrary $key read from:\n\t", join "\n\t",
+              @{ $inhouselibs{$key} };
+        }
+        else {
+            print "\nLibrary $key read from: ", join "\n\t",
+              @{ $inhouselibs{$key} };
+        }
+    }
+}
+else {
+    print "None";
+}
+
+printf "\n\nMissing packages for libs: \n";
+if ( keys %notfound ) {
+    print join "\n", sort keys %notfound;
+}
+else {
+    print "None";
+}
+
+if ( keys %found_command ) {
+    print "\n\nFound packages for commands:";
+    for my $key ( sort keys %found_command ) {
+        if ( @{ $found_command{$key} } > 1 ) {
+            print "\n$key found in:\n\t", join "\t", @{ $found_command{$key} };
+        }
+        else {
+            print "\n$key found in: ", join "\t", @{ $found_command{$key} };
+        }
+    }
+}
+
+print "\n\nIn house commands: \n";
+if ( keys %inhousecmds ) {
+    for my $key ( sort keys %inhousecmds ) {
+        if ( @{ $inhousecmds{$key} } > 1 ) {
+            print "\nCommand $key read from:\n\t", join "\n\t",
+              @{ $inhousecmds{$key} };
+        }
+        else {
+            print "\nCommand $key read from: ", join "\n\t",
+              @{ $inhousecmds{$key} };
+        }
+    }
+}
+else {
+    print "None";
+}
+
+print "\n";
+if ( keys %missing_command ) {
+    print "\nMissing commands:";
+    for my $key ( sort keys %missing_command ) {
+        if ( scalar keys %{ $missing_command{$key} } > 1 ) {
+            print "\ncommand $key read from:\n\t", join "\n\t",
+              sort keys %{ $missing_command{$key} };
+        }
+        else {
+            print "\ncommand $key read from: ", join "\n\t",
+              sort keys %{ $missing_command{$key} };
+        }
+    }
+}
+print "\n";
+
+sub inhouse {
+    my ( $type, $makefile_ref, $match ) = @_;
+    push @{ $inhouselibs{$match} }, "$$makefile_ref - $type"
+      if $type =~ /static|shared/;
+    push @{ $inhousecmds{$match} }, "$$makefile_ref" if $type =~ /cmd/;
+}
+
+#Fix this to parse nested $() and `` (recursive regex) aswell as pipes combine with type command to check if command exists before executing
+sub extract_cmd {
+    my ( $cmd_line, $filename ) = @_;
+    my ($command) = split ' ', $cmd_line;
+    if ( system("type $command >/dev/null 2>&1") == 0 ) {
+        chomp( my $output = qx#$cmd_line# );
+        return $output;
+    }
+    else {
+        $missing_command{$command}->{$filename} = 1;
+        return "";
+    }
+}
+
+sub run {
+    my @cmd = @_;
+    my ( $in, $out );
+    my $err     = gensym;
+    my $cmd_pid = open3( $in, $out, $err, @cmd );
+    my $sel     = IO::Select->new( $out, $err );
+    return ( $out, $err, $sel, $cmd_pid );
+}
+
+=begin
+
+update script to search also for missing headers tell if their are in house or not
+update script to tell if command is in house, per example created with -o command_name
+find  -iname Makefile -exec grep -o -E -H -- '([[:space:]=]-l.+\>)+' {} \;
+repoquery --archlist=$arch --pkgnarrow=installed  -f '*libi.so*

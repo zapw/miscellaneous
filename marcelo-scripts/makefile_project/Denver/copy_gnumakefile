@@ -1,0 +1,2 @@
+#!/bin/sh
+find . -name Makefile ! -path ./Makefile -exec /bin/sh -c 'cp -v GNUmakefile $(dirname {})' \;

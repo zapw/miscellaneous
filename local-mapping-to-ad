@@ -1,0 +1,51 @@
+#!/bin/bash
+#script to enter winbind/sss local maps into to AD unix attributes
+#run this script save its output to users.ldif
+#then run: ldapmodify -H ldap://sdc1/ -Y GSSAPI -N   -f users.ldif
+#getlist of users from 'getent passwd | grep "*" in sdev-web1'
+users=./users
+
+shopt -s extglob
+
+while IFS=: read -r first second; do
+        unset var
+        var="${second/ /}"
+        [[ $var =~ "//" || $var = "" ]] && continue
+        [[ $var = !(CN*) ]] && var="${var,,}" && array+=($(awk -F: -v User=$var '{ if (User == $1 ) print $3,$4 }' "$users"))
+        array+=("${var}")
+done < <(/usr/bin/ldapsearch -LLL -o ldif-wrap=no -H ldap://sdc1/ -Y GSSAPI -N -b "dc=foobar,dc=local" '(&(objectClass=user)(!(objectClass=computer)))' dn sAMAccountName)
+
+set -- "${array[@]}"
+while (( "${#@}" > 0 )) ; do
+        dnvalue="$1"
+        uid="$2"
+        gid="$3"
+        user="$4"
+        cat <<-EOF
+                dn: $dnvalue
+                changetype: modify
+                replace: uidNumber
+                uidNumber: $uid
+                -
+                replace: gidNumber
+                gidNumber: $gid
+                -
+                replace: loginShell
+                loginShell: /bin/bash
+                -
+                replace: msSFU30Name
+                msSFU30Name: $user
+                -
+                replace: msSFU30NisDomain
+                msSFU30NisDomain: foobar
+                -
+                replace: uid
+                uid: $user
+                -
+                replace: unixHomeDirectory
+                unixHomeDirectory: /home/FOOBAR/$user
+                -
+
+                EOF
+        shift 4
+done

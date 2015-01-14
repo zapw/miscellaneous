@@ -1,0 +1,59 @@
+#!/usr/bin/awk -f
+BEGIN { skip_commit = 1 }
+!/\s*Change-Id:|\s*Signed-off-by:/ {
+  if ($1 == "commit") { 
+	if ( ! skip_commit ) {
+		if ( desc != "" ) 
+			print desc
+		skip_commit = 1
+	}
+	desc = ""
+	next
+  }
+  if ( $0 ~ /^Date:/ ){
+	while ( (getline tmpline0) > 0 ){
+		if ( (tmpline0 !~ /^\s*\[Description\]:/) && (tmpline0 !~ /^\s*\[Ticket\s*\]/) && ( tmpline0 !~ /^commit / ) && ( tmpline0 !~ /^\s*\[internal/ )) {
+			sub(/^\s*/,"",tmpline0)
+			if ( tmpline0 != "" ) {
+				if ( desc != "" )
+					desc = desc ORS tmpline0
+				else
+					desc = tmpline0
+			}
+			skip_commit = 0
+			continue
+		}else if (tmpline0 ~ /^\s*\[internal/) {
+			skip_commit = 1
+			desc = ""
+			next
+		}else if (tmpline0 ~ /^\s*\[Description\]:/) {
+			break
+		}else if (tmpline0 ~ /^commit /) {
+			skip_commit = 1
+			desc = ""
+			next
+		}
+		#else if (tmpline0 ~ /^\s*\[Ticket\s*\]:/) {
+	#		sub(/^\s*\[Ticket\s*\]:\s*/,"",tmpline0)
+	#		if ( tmpline0 != "None" ){
+	#			desc = tmpline0
+	#			line[nr] = desc
+	#			line[NR] = tmpline0
+	#			skip_commit = 0
+	#			next
+	#		}
+	#	}
+	}
+	$0 = tmpline0
+  }
+  if ( ( $0 ~ /^\s*\[Ticket\s*\]:/ ) && (skip_commit == 0) ) {
+	sub(/^\s*\[Ticket\s*\]:\s*/,"",$0)
+	if ( $0 != "None" ){
+		desc = desc " - " $0
+		next
+	}else {
+		desc = ""
+		skip_commit = 1
+	}
+  }
+}

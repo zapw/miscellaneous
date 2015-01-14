@@ -1,0 +1,6 @@
+OPTION="-f -o reconnect,ServerAliveInterval=8,ServerAliveCountMax=2,ssh_command='autossh -M 0'"
+USER=git
+RMTUSER=gitsshfs
+SERVER=lab-git
+RMTPATH="/git/fwkiev_team.git"
+MNTPOINT="/srv/git"

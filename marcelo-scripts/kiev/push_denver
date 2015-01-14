@@ -1,0 +1,48 @@
+#!/bin/bash
+
+set -e
+
+trap '{ (( $? != 0 )) &&  /bin/logger -s "$error" ;}' EXIT
+
+regexmatch="nothing to commit"
+home="/home/git"
+
+
+cd "$home/intel_sync_to_kiev"
+for repo in config_files denver_core denver_core_unitests services sv_driver; do
+        error+=$(/usr/bin/git fetch -q "${repo}-intel" 2>&1)
+        error+=$(/usr/bin/git rev-parse refs/tags/${repo}-intel/Denver_Latest_Release 2>&1)
+        error+=$(git push -q "${repo}-kiev" "+refs/tags/${repo}-intel/Denver_Latest_Release^0:refs/heads/master" "+refs/tags/${repo}-intel/Denver_Latest_Release:refs/tags/Denver_Latest_Release" 2>&1)
+done
+
+cd "$home/lan_sv-denver-1/"
+error+=$(/usr/bin/git fetch -q --tags 2>&1)
+touch "$home/kiev_denver/.previous_tag"
+if ! current_reftag=$(/usr/bin/git rev-parse refs/tags/Denver_Latest_Release^0 2>&1); then
+        error+=$current_reftag
+        exit 1
+fi
+
+read previous_reftag <"$home/kiev_denver/.previous_tag" || true
+
+if [[ $previous_reftag != $current_reftag ]]; then
+        /usr/bin/git checkout -q refs/tags/Denver_Latest_Release
+else
+        exit 0
+fi
+
+cd - >/dev/null
+/usr/bin/rsync -q -a --exclude=".git/" --exclude=.previous_tag --exclude="teams/FwKiev_team/" --delete --numeric-ids  "$home/lan_sv-denver-1/" "$home/kiev_denver/"
+cd "$home/kiev_denver/"
+echo "$current_reftag" >.previous_tag
+/usr/bin/git add -A .
+
+if ! error1=$(/usr/bin/git commit -q -m 'automatic denver update' 2>&1); then
+        error+=$error1
+        if [[ ! $error1 =~ $regexmatch ]]; then
+                exit 1
+        fi
+fi
+
+error+=$(/usr/bin/git tag -f Denver_Latest_Release HEAD 2>&1)
+error+=$(/usr/bin/git push -q --force --tags origin master 2>&1)

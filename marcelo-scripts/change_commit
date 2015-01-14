@@ -1,0 +1,22 @@
+#!/usr/bin/awk -f
+{ 
+  line[NR]=$0
+  if ($1 == "commit") { 
+	nr = NR 
+	next
+  }
+  if ( $1 == "[Description]:" ){
+	sub(/\s*\[Description\]:\s*/,"",$0)
+	desc = $0
+	next
+  }
+  if ( $0 ~ /\[User story \]:/ ){
+	sub(/\s*\[User story \]:\s*/,"",$0)
+	line[nr]=desc " - " $0
+	next
+  }
+}
+  END { 
+	for (x = 1; x <= NR; x++)
+		print line[x]
+}

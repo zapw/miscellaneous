@@ -1,0 +1,5 @@
+#!/bin/sh
+for host; do
+        echo "Inserting/Replacing $host in /etc/profile.d/cseexports.sh"
+        sudo sed -ir '/export no_proxy="/{s/[,"]'"$host"'[,"]/&/g;T replace;b;:replace s/,*"[[:space:]]*$/,'"$host"'"/}' /etc/profile.d/cseexports.sh
+done && { echo "sourcing /etc/profile.d/cseexports.sh" ; . /etc/profile.d/cseexports.sh ;}

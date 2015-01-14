@@ -1,0 +1,32 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+my $github = '192.30.253.112';
+my $git_sv_gnu_org = '208.118.235.201';
+
+my @servers = qw/chat.freenode.net irc.perl.org ix1.undernet.org/;
+my (@ips, @list);
+push @list, qx#host $_# for @servers;
+
+for ( @list ) {
+  push @ips, grep { /^\d+\.\d+\.\d+\.\d+$/ } (split " ")[-1];
+}
+
+push @ips, $github, $git_sv_gnu_org;
+
+open (my $fh, '>', "/etc/openvpn/vpnips") or die $!;
+
+{
+ local $, = "\n";
+ print $fh '#Last update ' . localtime, @ips;
+}
+print $fh "\n";
+
+ip('add',$_,'tun0') for @ips;
+
+sub ip {
+  my ($action,$ip,$tun) = @_;
+  system('sudo', '/sbin/ip', 'route', $action, $ip, 'dev', $tun);
+}

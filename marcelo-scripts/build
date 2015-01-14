@@ -1,0 +1,22 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+my %packages;
+
+no warnings 'numeric';
+if (system ('rpmbuild', '-ba',  @ARGV)){
+ for ( qx/rpmbuild -ba @ARGV 2>&1/ ){
+    if ( (/error: Failed build dependencies:/ .. /^$/) > 1 ){
+      my ($foo,$package) = split (/[\s(]/, $_);
+      $packages{$package} = 1;
+    }
+ }
+ system('sudo', 'yum', 'install', keys %packages) if %packages;
+}
+
+=begin 
+ URI::Find for fetching the links from the html
+ LWP for the HTTP client
+ src.fedoraproject.org
+ https://src.fedoraproject.org/cgit/rpms/?q=foo

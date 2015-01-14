@@ -1,0 +1,16 @@
+ADAPTER_NAME := IPs/Eth/CPM
+CXXFLAGS := -std=c++11
+all_lib_inc = -I/usr/include/cpm_driver/api $(FINAL_GENERIC_INC)
+-include ../../../../../../includes/adapter.mk
+
+ifndef loaded
+.PHONY: force
+define find_adapter_mk
+$(or $(wildcard $(1)),$(call find_adapter_mk,../$(1)))
+endef
+
+resolved_path := $(or $(wildcard ../../includes/adapter.mk),$(call find_adapter_mk,../../../includes/adapter.mk))
+Makefile: force
+	@sed -Ei 's:^-include (.*includes/adapter.mk):-include $(resolved_path):' ./Makefile
+force: ;
+endif

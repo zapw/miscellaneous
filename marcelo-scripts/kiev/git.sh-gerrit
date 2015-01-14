@@ -1,0 +1,80 @@
+#!/bin/bash
+
+git_port="22"
+git_httpport="8080"
+git_host="10.103.106.199"
+git_user="git"
+ssh_dir="$HOME/.ssh/"
+git_ssh_key="$ssh_dir/id_rsa"
+git_path="/srv/git"
+key="/net/$git_host/data/things/keys/git/id_rsa"
+
+repo=(Denver services sv_driver DenverCore DenverCoreUniTests DenverFwKievTests ConfigFiles)
+reponame=(denver.git services.git sv_driver.git denver_core.git denver_core_unitests.git fwkiev_team.git config_files.git)
+
+for ((i=0 ; i<${#repo[@]};i++)); do
+         declare -g "gt_${repo[$i]}=ssh://$git_user@$git_host:${git_port}${git_path}/${reponame[$i]}"
+done
+
+getgit_key () {
+
+  mkdir -p "$ssh_dir" || { echo "Error: Unable to create $ssh_dir" ; return ;}
+  { chmod 700 "$ssh_dir" && chown -R $UID "$ssh_dir"  ;} || return
+  cp -a $key "$ssh_dir/"  || { echo "Error: Unable to copy git key" ; return ;}
+  { chown $UID "$ssh_dir/id_rsa" && chmod 0600 "$ssh_dir/id_rsa" ;} || { echo "Error: unable to change file permission/owner $ssh_dir/id_rsa" ; return ;}
+  rm -f "$ssh_dir/id_rsa.pub" || { echo "Error: unable to delete $ssh_dir/id_rsa.pub" ; return ;}
+}
+
+test_key () {
+  return_msg=$(ssh -T -o PasswordAuthentication=no -i "$git_ssh_key" -l "$git_user" "$git_host" -p "$git_port" 2>&1)
+  if ! grep -q -E '^fatal: What do you think I am\? A shell\?$' <<<"$return_msg"; then
+      error=$(getgit_key)
+      grep ^Error <<<"$error"
+  fi
+}
+
+git_setup () {
+	[[ ! $1 ]] && { echo "Usage: git_login <IT USER>" ; return 1 ;}
+
+        unset -v description gerrituser gerritpass keysnotset
+        declare -A description
+        gerrituser=$1
+        while [[ ! $gerritpass ]]; do
+                read -esp "Password:" gerritpass
+                echo
+        done
+
+        [[ $gerritpass ]] || return 1
+	echo "Authenticating ..."
+        while IFS=': ' read -r attribute value; do
+                [[ $attribute = dn ]] || [[ ! $attribute ]] && continue
+                description[$attribute]=$value
+        done < <(/usr/bin/ldapsearch -LLL -h "$git_host" -D "cn=$gerrituser,ou=Users,dc=intel,dc=com" -w "$gerritpass" -b ou=Users,dc=intel,dc=com "(&(objectClass=inetOrgPerson)(uid=$gerrituser))" mail displayName)
+
+        for key in mail displayName;do
+                if [[ ! ${description[$key]} ]]; then
+                        keysnotset+=" $key"
+                fi
+        done
+        if [[ -v keysnotset ]]; then
+                unset -v gerrituser gerritpass
+                echo "unable to read ldap attributest: $keysnotset"
+                return 1
+        fi
+
+        GIT_AUTHOR_NAME=${description[displayName]}
+        GIT_COMMITTER_NAME=$GIT_AUTHOR_NAME
+
+        GIT_COMMITTER_EMAIL=${description[mail]}
+        EMAIL=$GIT_COMMITTER_EMAIL
+        export GIT_AUTHOR_NAME GIT_COMMITTER_NAME EMAIL GIT_COMMITTER_EMAIL gerrituser
+
+        echo "Running: git credential approve"
+        git credential approve <<-EOF || { unset -v gerrituser gerritpass ; return 1 ;}
+		protocol=http
+		host=$git_host:$git_httpport
+		username=$gerrituser
+		password=$gerritpass
+
+EOF
+}

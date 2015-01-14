@@ -1,0 +1,69 @@
+################################################################################
+#
+# 
+# Copyright(c) 1999 - 2010 Intel Corporation. All rights reserved.
+# 
+# Rafi Chen 17.1.2017
+# Makefile for building i200evf sv driver
+#
+################################################################################
+#ARCH := $(shell uname -m | sed 's/i.86/i386/')
+
+
+REDHAT_DISTRIB:=$(shell grep -lr "Santiago" /etc/*-release 2>/dev/null)
+
+ccflags-y += -I$(src)/../sv_shared/
+ccflags-y += -I$(src)/../api/inc/
+ccflags-y += -I$(src)/../api/iwarp/inc/
+ccflags-y += -I$(src)/../i200e/lan/
+ccflags-y += -I$(src)/../i200evf/
+ccflags-y += -I$(src)/../i200e/iwarp/
+ccflags-y += -I$(src)/../i200e/shared/
+ccflags-y += -I$(src)/../iw_shared/
+
+
+ccflags-y += -O2     # optimize for performance
+ccflags-y += -DI200EVF
+ccflags-y += -DSV_DRIVER
+ccflags-y += -DSV_SUPPORT
+ccflags-y += -DI200IW
+ccflags-y += -DFPGA_SUPPORT
+ccflags-y += -DSYSLOG_PRINTS
+
+#=====================================================================
+#if you set the MEMDEBUG flag here, you MUST set it in i200e Kbuild as well - very important!!!
+#ccflags-y += -DMEMDEBUG
+#=====================================================================
+
+
+ccflags-y += -Wno-format
+ccflags-y += -Wno-unused-variable
+ccflags-y +=	-Wunused-label
+
+ifneq ($(REDHAT_DISTRIB),)
+	ccflags-y += -DNO_CUSTOM_KMEM_CACHE
+endif
+
+
+TARGET_OBJ_VF = i200evf.o
+OBJECTS_VF = i200evf-y
+obj-m += $(TARGET_OBJ_VF)
+
+$(OBJECTS_VF):=   i200evf_main.o\
+		  i200evf_intr.o\
+		  i200evf_tx_ring.o\
+		  shared/ice_common.o\
+                  shared/ice_controlq.o\
+		  shared/ice_nvm.o\
+		  shared/ice_sched.o\
+		  shared/ice_switch.o\
+		  shared/ice_flex_pipe.o\
+		  lan/i200e_aq.o\
+		  sv_shared/sv_ctrl.o\
+		  sv_shared/sv_mem.o\
+		  sv_shared/sv_tx_ring.o\
+		  sv_ctrl_cmds_vf.o\
+
+print:
+	@echo "$(ccflags-y)"
+

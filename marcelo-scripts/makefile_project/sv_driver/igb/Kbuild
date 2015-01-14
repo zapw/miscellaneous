@@ -1,0 +1,95 @@
+################################################################################
+#
+# 
+# Copyright(c) 1999 - 2009 Intel Corporation. All rights reserved.
+# 
+# Makefile for building igb sv driver
+#
+################################################################################
+#ARCH := $(shell uname -m | sed 's/i.86/i386/')
+
+
+REDHAT_DISTRIB:=$(shell grep -lr "Santiago" /etc/*-release 2>/dev/null)
+
+ccflags-y += -I$(src)/../sv_shared/
+ccflags-y += -I$(src)/../api/inc/
+ccflags-y += -I$(src)/../igb/
+ccflags-y += -I$(src)/../igb/shared/ 
+
+ccflags-y += -O2     # optimize for performance
+ccflags-y += -DIGB
+#ccflags-y += -DSPVL_PSVL_A0_SI_WA
+ccflags-y += -DHW_SV
+ccflags-y += -DSYSLOG_PRINTS
+ccflags-y += -DDMA_SW_FLUSH
+#ccflags-y += -Winline
+ccflags-y += -Wno-unused-value
+ccflags-y += -Wno-unused-variable
+ccflags-y +=	-Wunused-label
+#ccflags-y += -DCHECKER_DISABLED
+#ccflags-y += -DTX_DBG
+#ccflags-y += -DNO_FAIL_ON_PHY_ERROR
+ccflags-y += -DEXP_TABLE_NO_GAP
+
+
+################ debug flags ###########################
+# print every write csr
+#ccflags-y += -DPRINT_CSR_WRITE
+
+# shared code debug prints
+#ccflags-y += -DSHARED_CODE_DEBUG_PRINTS
+
+ifneq ($(REDHAT_DISTRIB),)
+	ccflags-y += -DNO_CUSTOM_KMEM_CACHE
+endif
+
+
+# If we compile for SVOS, change target module name (suffix it with "sv")
+ifeq ($(SVOS),1)
+	TARGET_OBJ = igbsv.o
+	OBJECTS = igbsv-y
+else
+	TARGET_OBJ = igb.o
+	OBJECTS = igb-y
+endif
+
+obj-m += $(TARGET_OBJ)
+
+$(OBJECTS) :=	shared/e1000_82575.o\
+                shared/e1000_i210.o\
+		shared/e1000_mac.o \
+		shared/e1000_nvm.o \
+		shared/e1000_phy.o \
+		shared/e1000_manage.o \
+		shared/e1000_api.o \
+		shared/kcompat.o \
+		shared/e1000_mbx.o \
+		igb_main.o\
+		igb_rx_ring.o \
+		igb_tx_ring.o \
+		igb_mem.o \
+		igb_iov.o \
+		igb_intr.o \
+		igb_diag.o\
+                sv_shared/sv_main.o\
+		sv_shared/sv_ctrl.o\
+		sv_shared/sv_ctrl_cmds.o\
+                sv_shared/sv_mem.o\
+		sv_shared/sv_rx_ring.o\
+		sv_shared/sv_rx_isr.o\
+		sv_shared/sv_rx_ring_adv.o\
+		sv_shared/sv_tx_ring.o\
+		sv_shared/sv_diag.o\
+                sv_shared/sv_queue.o\
+                sv_shared/sv_log.o\
+		sv_shared/sv_error.o\
+                sv_shared/sv_packetcollector.o\
+		sv_shared/sv_rx_packet.o\
+                sv_shared/sv_intr.o\
+		sv_shared/sv_iov.o\
+                sv_shared/sv_exp_table.o\
+                sv_shared/sv_events.o\
+		sv_shared/sv_config.o\
+                sv_shared/sv_thx.o\
+		sv_shared/sv_cc.o\
+		sv_shared/sv_cc_desc_ops.o\

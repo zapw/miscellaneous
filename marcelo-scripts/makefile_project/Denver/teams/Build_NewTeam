@@ -1,0 +1,177 @@
+#!/bin/bash
+##################################################################################
+## script for opening new team tree
+## Details: the script will open a new tree with all the needed makefiles                                        
+## 		, same tree structure for all teams.
+## MUST run the script from the teams dir otherwise it will NOT WORK!
+## and offcourse the template team should be there !
+##
+
+##################################################################################
+#########################################
+# 1'st parameter : team name (-t teamname)
+# 2'nd parameter : family nameeeeeee (-f familyname)
+# 3'rd parameter : product name (-p productname)
+#########################################
+
+
+function PrintHelp {
+	echo "usage is:"
+	echo " 		-t TeamName -f FamilyName -p ProductName"
+}
+
+TNameExists=0
+FNameExists=0
+PNameExists=0
+while getopts ":t:f:p:h" optname
+  do
+    case "$optname" in
+      "t")
+	TNameExists=1
+	TName="$OPTARG"
+        ;;
+      "f")
+	FNameExists=1
+	FName="$OPTARG"
+        ;;
+      "p")
+	PNameExists=1
+	PName="$OPTARG"
+        ;;
+      "h")
+	PrintHelp
+	exit -1
+	;;
+      "?")
+        echo "Unknown option $OPTARG"
+	PrintHelp
+	exit -1
+        ;;
+      ":")
+        echo "No argument value for option $OPTARG"
+	PrintHelp
+	exit -1
+        ;;
+      *)
+      # Should not occur
+        echo "Unknown error while processing options"
+        ;;
+    esac
+  done
+
+if [ "$TNameExists" -ne 1 ]
+then
+	echo "option -t missing, -h for help"
+	exit -1
+fi
+
+if [ "$FNameExists" -ne 1 ]
+then
+	echo "option -f missing, -h for help"
+	exit -1
+fi
+if [ "$PNameExists" -ne 1 ]
+then
+	echo "option -p missing, -h for help"
+	exit -1
+fi
+
+
+mkdir "$TName"
+cp -rf TemplateTeam/* "$TName"/
+
+#########remove CVS dirs
+cd "$TName"
+for CVSDir in $(find ./ -name CVS);
+do
+	rm -rf "$CVSDir"
+done
+
+cd ..
+
+
+###############################
+
+###############################
+
+
+
+
+####set team name#####
+
+TemplateTeamName=TemplateTeam
+
+cd "$TName"
+for makefile in $(find ./ -name "Makefile");
+do
+	sed -i "s/TemplateTeamNAME/$TName/g" $makefile
+	cp ../../GNUmakefile "${makefile%/*}"
+done
+#####################
+
+#modify infrastrcuture
+
+###add headers and cpps of the families
+
+
+cd infrastructure/family/
+mv src/CFamilyNAMETest.cpp "src/C${FName}Test.cpp"
+mv inc/CFamilyNAMETest.h "inc/C${FName}Test.h"
+sed -i "s/FamilyNAME/${FName}/g" "src/C${FName}Test.cpp"
+sed -i "s/FamilyNAME/${FName}/g" "inc/C${FName}Test.h"
+
+
+cd ../../
+
+
+##add headers of the product
+
+cd infrastructure/products/
+mv src/CProductNAMETest.cpp "src/C${PName}Test.cpp"
+mv inc/CProductNAMETest.h "inc/C${PName}Test.h"
+sed -i "s/ProductNAME/${PName}/g" "src/C${PName}Test.cpp"
+sed -i "s/ProductNAME/${PName}/g" "inc/C${PName}Test.h"
+
+sed -i "s/FamilyNAME/${FName}/g" "src/C${PName}Test.cpp"
+sed -i "s/FamilyNAME/${FName}/g" "inc/C${PName}Test.h"
+
+cd ../../
+
+
+
+#####################
+#modify tests
+
+###family tests
+cd tests/family
+mv TemplateFamilyNAME "${FName}"
+
+sed -i "s/FamilyNAME/${FName}/g" "${FName}/inc/CFirstFamilyTest.h"
+sed -i "s/FamilyNAME/${FName}/g" "${FName}/src/CFirstFamilyTest.cpp"
+
+cd ../../
+
+###products tests
+
+
+cd tests/products
+mv TemplateProductNAME "${PName}"
+
+sed -i "s/FamilyNAME/${FName}/g" "${PName}/inc/CFirstProductTest.h"
+sed -i "s/FamilyNAME/${FName}/g" "${PName}/src/CFirstProductTest.cpp"
+sed -i "s/ProductNAME/${PName}/g" "${PName}/inc/CFirstProductTest.h"
+sed -i "s/ProductNAME/${PName}/g" "${PName}/src/CFirstProductTest.cpp"
+
+cd ../../
+
+############Add Adapters Lib to team#########
+
+
+
+CurrentAdapters=`grep -w "ADAPTERS :="  my_team.mk`
+NewAdapters=" ${CurrentAdapters} ${FName} "
+sed -i "s/${CurrentAdapters}/${NewAdapters}/g" "my_team.mk"
+#goodCurrentAdapter=`echo "$CurrentAdapters"|sed 's?/?\\\/?g'`
+
+
+
