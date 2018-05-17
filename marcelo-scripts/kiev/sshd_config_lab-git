@@ -1,6 +1,0 @@
-Subsystem       sftp    internal-sftp
-
-Match User gitsshfs
-  ChrootDirectory /srv
-  ForceCommand internal-sftp
-  AllowTcpForwarding no

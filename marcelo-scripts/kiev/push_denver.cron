@@ -1,2 +1,0 @@
-#every 7min
-*/7 * * * * gitdummy /usr/local/bin/push_denver

@@ -1,5 +1,0 @@
-ADAPTERS := IPs/Eth/40Gs IPs/Eth/10Gs IPs/Eth/1Gs IPs/Eth/Generic IPs/Eth/BMC
-CXXFLAGS := -std=c++11
-EXTRA_TEAM_INC := 
-EXTRA_TEAM_LIB :=
-TEAM_GENERIC_INFRA_INC+= -I$(TEAM_INFRA)/generic/ANVM

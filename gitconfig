@@ -1,2 +1,0 @@
-[credential]
-        helper = cachewrapper --timeout 32400

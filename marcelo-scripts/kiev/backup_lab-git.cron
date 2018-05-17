@@ -1,2 +1,0 @@
-#every day at 2am
-0 2 * * *  root /usr/bin/rsync -aqz -e 'ssh -i /root/.ssh/backup.rsa' --delete --numeric-ids lab-git:/backup/ /root/backup/

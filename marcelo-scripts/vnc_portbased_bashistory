@@ -1,7 +1,0 @@
-put this in sv10g’s home .bashrc (/home/sv10g/.bashrc)
-
-read port rest <<<${VNCDESKTOP#*:}
-[[ $port ]] && HISTFILE="$HOME/.bash_history-$port"
-HISTFILESIZE=400000000
-HISTSIZE=10000
-PROMPT_COMMAND="history -a"
