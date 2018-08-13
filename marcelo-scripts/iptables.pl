@@ -61,6 +61,8 @@ $table{raw}->{prerouting} = [
 	(map { [ '-s', $tunclient, '-d', $_, qw/-i tun+ -p tcp --dport 22/, @highport_s ]  } @hosts_port22),
 	(map { [ '-s', $tunclient, '-d', $_, qw/-i tun+ -p tcp --dport 9418/, @highport_s ]  } @hosts_port9418),
 	['-s', $tunclient, '-i', qw/tun+ -p tcp --dport 6667/, @highport_s],
+	['-s', $tunclient, '-i', qw/tun+ -p tcp --dport 443/, @highport_s],
+	['-s', $tunclient, '-i', qw/tun+ -p tcp --dport 4001/, @highport_s],
 	[qw/-i tun+/]
 ];
 
@@ -75,6 +77,8 @@ $table{nat}->{postrouting} = [
 
 $table{mangle}->{postrouting} = [
 	['-d', $tunclient, qw/-o tun+ -p tcp --sport 6667/, @highport_d],
+	['-d', $tunclient, qw/-o tun+ -p tcp --sport 443/, @highport_d],
+	['-d', $tunclient, qw/-o tun+ -p tcp --sport 4001/, @highport_d],
 	['-s', $tunserver, '-d', $tunclient, qw/-o tun+ -p tcp/, @portuple_d],
 	(map { ['-s', $_, '-d', $tunclient, qw/-o tun+ -p tcp --sport 22/, @highport_d] } @hosts_port22),
 	(map { ['-s', $_, '-d', $tunclient, qw/-o tun+ -p tcp --sport 9418/, @highport_d] } @hosts_port9418),
@@ -101,6 +105,8 @@ for my $table (keys %table_c){
 
 #Add extra rules for our client
 unshift @{$table_c{raw}->{output}}, ['-s', $tunclient, qw/-o tun+ -p tcp --dport 6667/, @highport_s],
+									['-s', $tunclient, qw/-o tun+ -p tcp --dport 443/, @highport_s],
+									['-s', $tunclient, qw/-o tun+ -p tcp --dport 4001/, @highport_s],
 									(map { ['-s', $tunclient, '-d', $_, qw/-o tun+ -p tcp --dport 22/, @highport_s] } @hosts_port22),
 									(map { ['-s', $tunclient, '-d', $_, qw/-o tun+ -p tcp --dport 9418/, @highport_s] } @hosts_port9418);
 

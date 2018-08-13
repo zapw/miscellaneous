@@ -6,7 +6,19 @@ use warnings;
 my $github = '192.30.253.112';
 my $git_sv_gnu_org = '208.118.235.201';
 
-my @servers = qw/chat.freenode.net irc.perl.org ix1.undernet.org/;
+my @tws_america_east = qw/gdc1.ibllc.com gdc1_hb1.ibllc.com/;
+my @tws_america_central = qw/cdc1.ibllc.com cdc1_hb1.ibllc.com/;
+my @tws_europe = qw/zdc1.ibllc.com zdc1_hb1.ibllc.com/;
+my @tws_asia = qw/hdc1.ibllc.com hdc1_hb1.ibllc.com/;
+my @tws_autoupdate = qw/download.interactivebrokers.com download2.interactivebrokers.com/;
+my @tws_risk_navigator = qw/risk.interactivebrokers.com/;
+my @tws_cloud_settings = qw/s3.amazonaws.com/;
+my @tws_ib_cam = qw/gdc1.ibllc.com/;
+my @ib_diagnostics_report = qw/wit1.interactivebrokers.com/;
+
+my @servers = (qw/chat.freenode.net irc.perl.org ix1.undernet.org/, @tws_america_central, @tws_europe, @tws_asia, @tws_autoupdate,
+	 @tws_risk_navigator, @tws_cloud_settings, @tws_ib_cam, @ib_diagnostics_report);
+
 my (@ips, @list);
 push @list, qx#host $_# for @servers;
 
