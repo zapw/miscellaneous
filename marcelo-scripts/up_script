@@ -12,12 +12,14 @@ my @tws_europe = qw/zdc1.ibllc.com zdc1_hb1.ibllc.com/;
 my @tws_asia = qw/hdc1.ibllc.com hdc1_hb1.ibllc.com/;
 my @tws_autoupdate = qw/download.interactivebrokers.com download2.interactivebrokers.com/;
 my @tws_risk_navigator = qw/risk.interactivebrokers.com/;
-my @tws_cloud_settings = qw/s3.amazonaws.com/;
+my @tws_cloud_settings = qw#52.216.0.0/16#;
 my @tws_ib_cam = qw/gdc1.ibllc.com/;
 my @ib_diagnostics_report = qw/wit1.interactivebrokers.com/;
+my @clientam = qw/www.clientam.com/;
+my @download2_interactive = qw/104.66.70.197 23.67.139.222/;
 
 my @servers = (qw/chat.freenode.net irc.perl.org ix1.undernet.org/, @tws_america_central, @tws_europe, @tws_asia, @tws_autoupdate,
-	 @tws_risk_navigator, @tws_cloud_settings, @tws_ib_cam, @ib_diagnostics_report);
+	 @tws_risk_navigator, @tws_ib_cam, @ib_diagnostics_report, @clientam);
 
 my (@ips, @list);
 push @list, qx#host $_# for @servers;
@@ -26,7 +28,7 @@ for ( @list ) {
   push @ips, grep { /^\d+\.\d+\.\d+\.\d+$/ } (split " ")[-1];
 }
 
-push @ips, $github, $git_sv_gnu_org;
+push @ips, $github, $git_sv_gnu_org, @download2_interactive, @tws_cloud_settings;
 
 open (my $fh, '>', "/etc/openvpn/vpnips") or die $!;
 
