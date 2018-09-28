@@ -111,5 +111,5 @@ sub formula{
 
 sub check{
 	my ($holding_shares) = @_;
-	say "NOTE NEW HOLDINGS WILL BE LARGER THAN ALLOWED MARGIN OF $margin_multi" if $holding_shares/$pos_orderentry > 4;
+	say "NOTE NEW HOLDINGS WILL BE LARGER THAN ALLOWED MARGIN OF ${margin_multi}x (" . $margin_multi*$cash/$sect_price . " shares)" if $holding_shares/$pos_orderentry > 4;
 }

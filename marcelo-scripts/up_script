@@ -6,20 +6,19 @@ use warnings;
 my $github = '192.30.253.112';
 my $git_sv_gnu_org = '208.118.235.201';
 
-my @tws_america_east = qw/gdc1.ibllc.com gdc1_hb1.ibllc.com/;
+my @tws_america_east = qw/gdc1.ibllc.com gdc1_hb1.ibllc.com ndc1.ibllc.com ndc1_hb1.ibllc.com/;
 my @tws_america_central = qw/cdc1.ibllc.com cdc1_hb1.ibllc.com/;
 my @tws_europe = qw/zdc1.ibllc.com zdc1_hb1.ibllc.com/;
 my @tws_asia = qw/hdc1.ibllc.com hdc1_hb1.ibllc.com/;
 my @tws_autoupdate = qw/download.interactivebrokers.com download2.interactivebrokers.com/;
 my @tws_risk_navigator = qw/risk.interactivebrokers.com/;
 my @tws_cloud_settings = qw#52.216.0.0/16#;
-my @tws_ib_cam = qw/gdc1.ibllc.com/;
 my @ib_diagnostics_report = qw/wit1.interactivebrokers.com/;
 my @clientam = qw/www.clientam.com/;
 my @download2_interactive = qw/104.66.70.197 23.67.139.222/;
 
 my @servers = (qw/chat.freenode.net irc.perl.org ix1.undernet.org/, @tws_america_central, @tws_europe, @tws_asia, @tws_autoupdate,
-	 @tws_risk_navigator, @tws_ib_cam, @ib_diagnostics_report, @clientam);
+	 @tws_risk_navigator, @ib_diagnostics_report, @clientam);
 
 my (@ips, @list);
 push @list, qx#host $_# for @servers;
