@@ -3,7 +3,7 @@
 my $start =  147;
 
 
-my $period = 10*12;
+my $period = 3*12;
 my $savings = 5;
 
 
@@ -13,13 +13,13 @@ for (my $i = 1; $i<=$period; $i++){
 		#$start  = ($start*2/3) + ($start/3 * 0.5) + 5;
 		$start  = ($start * 0.5) + $savings;
 
-	}elsif ($i % 6 == 0){
-		#2 percent loss every 6 trades
-		#start  = ($start*2/3) + ($start/3 * 0.98) + 5;
-		$start  = ($start * 0.98) + $savings;
+	}elsif ($i % 5 == 0){
+		#10 percent loss every 5 trades
+		#start  = ($start*2/3) + ($start/3 * 0.90) + 5;
+		$start  = ($start * 0.90) + $savings;
 	}else{
-		#$start  = ($start*2/3) + ($start/3 * 1.07) + 5;
-		$start  = ($start * 1.07) + $savings;
+		#$start  = ($start*2/3) + ($start/3 * 1.3499996) + 5;
+		$start  = ($start * 1.3499996) + $savings;
 	}
 	print "month $i ", $start, "\n";
 }
