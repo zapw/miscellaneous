@@ -4,7 +4,7 @@ my $start =  147;
 
 
 my $period = 3*12;
-my $savings = 5;
+my $savings = 0;
 
 
 for (my $i = 1; $i<=$period; $i++){
