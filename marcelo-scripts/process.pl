@@ -42,7 +42,7 @@ if (@ARGV >= 3){
 		shift @tmp_list;
 
 		for (@tmp_list){
-			$scanner_list{(split ' ')[0]} = 1;
+			$scanner_list{(split /(\s+|,)/)[0]} = 1;
 		}
 	}
 	for (keys %scanner_list){
