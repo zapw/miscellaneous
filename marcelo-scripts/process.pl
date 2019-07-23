@@ -21,48 +21,60 @@
 use strict;
 use warnings;
 use feature 'say';
+use Getopt::Long;
 
 
-my (@watchlist, @watchlist_ignore);
-my (%watchlist, %watchlist_ignore);
+my (%watchlist, %ignorelist);
 my %scanner_list_down;
 my %scanner_list_up;
 my @not_in_watchlist;
+my (@watchlist_files,@ignore_files,@up_files,@down_files);
 
-if (@ARGV >= 4){
-	open (my $watchlist_handler, '<', $ARGV[0]) or die "Unable to open $ARGV[0] $!";
-	@watchlist = <$watchlist_handler> =~ m/,?\w+:(\w+)/g;
-	@watchlist{@watchlist} = 1;
-	open (my $watchlist_ignore_handler, '<', $ARGV[1]) or die "Unable to open $ARGV[1] $!";
-	@watchlist_ignore = <$watchlist_ignore_handler> =~ m/,?\w+:(\w+)/g;
-	@watchlist_ignore{@watchlist_ignore} = 1;
+GetOptions('watch=s{1,}' => \@watchlist_files, 'ignore=s{1,}' => \@ignore_files, 'up=s{1,}' => \@up_files, 'down=s{1,}' => \@down_files);
 
-	open (my $scanner_output_up_handler, '<', $ARGV[2]) or die "Unable to open $ARGV[2] $!";
-	my @tmp_list_up = <$scanner_output_up_handler>;
-	shift @tmp_list_up;
 
-	$scanner_list_up{(split /(\s+|,)/)[0]} = 1 for @tmp_list_up;
+say "USAGE:  $0  --watch <file> ... --ignore <file> ... --up <file> ... --down <file> ..."  if @ARGV <= 1;
 
-	for (my $i=3; $i < @ARGV; $i++){
-		open (my $scanner_output_handler, '<', $ARGV[$i]) or die "Unable to open $ARGV[$i] $!";
-		my @tmp_list = <$scanner_output_handler>;
-		shift @tmp_list;
-
-		for (@tmp_list){
-			$scanner_list_down{(split /(\s+|,)/)[0]} = 1;
-		}
+sub watch_ignore {
+	my (%list, @list);
+	for (my $i=0; $i < @_; $i++){
+		open (my $handler, '<', $_[$i]) or die "Unable to open $_[$i] $!";
+		@list = <$handler> =~ m/,?\w+:(\w+)/g;
+		@list{@list} = 1;
 	}
+	return %list;
+}
 
-	for (keys %scanner_list_down){
-		next if exists $watchlist{$_} || exists $watchlist_ignore{$_};
-		push @not_in_watchlist, $_;
+sub up_down {
+	my %scanner_list;
+	for (my $i=0; $i < @_; $i++){
+		open (my $handler, '<', $_[$i]) or die "Unable to open $_[$i] $!";
+		my @tmp_list_up = <$handler>;
+		shift @tmp_list_up;
+
+		$scanner_list{(split /(\s+|,)/)[0]} = 1 for @tmp_list_up;
 	}
-	print "The following stocks are not in the watchlist:\n---\n", join "\n",  @not_in_watchlist, "---\n" if @not_in_watchlist;
+	return %scanner_list;
+}
 
-	for (keys %scanner_list_up){
-		if (exists $watchlist_ignore{$_}){
-			say "Warning *** current ignore list '$ARGV[1]' has ticker '$_' which now moved to UP list in the scanner, remove ticker from ignore list";
-		}
+%watchlist = watch_ignore(@watchlist_files);
+%ignorelist = watch_ignore(@ignore_files);
+
+%scanner_list_up = up_down(@up_files);
+%scanner_list_down = up_down(@down_files);
+
+
+for (keys %scanner_list_down){
+	next if exists $watchlist{$_} || exists $ignorelist{$_};
+	push @not_in_watchlist, $_;
+}
+print "The following stocks are not in the watchlist:\n---\n", join "\n",  @not_in_watchlist, "---\n" if @not_in_watchlist;
+
+for (keys %scanner_list_up){
+	if (exists $ignorelist{$_}){
+		say "Warning *** ticker '$_' moved to UP list in the scanner, remove ticker from ignore list";
 	}
-
-}else { say "USAGE:  $0  <watchlist> <ignorelist> <uplist> <downlist> <downlist> ..." }
+	if (exists $scanner_list_down{$_}){
+		say "Warning *** ticker '$_' exists both in UP and DOWN list, list are not up to date";
+	}
+}
