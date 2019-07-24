@@ -78,3 +78,7 @@ for (keys %scanner_list_up){
 		say "Warning *** ticker '$_' exists both in UP and DOWN list, list are not up to date";
 	}
 }
+
+for (keys %ignorelist){
+	say "Warning *** ticker '$_' exists both in ignorelist and watchlist list" if exists $watchlist{$_};
+}
