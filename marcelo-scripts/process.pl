@@ -79,6 +79,6 @@ for (keys %scanner_list_up){
 	}
 }
 
-for (keys %ignorelist){
-	say "Warning *** ticker '$_' exists both in ignorelist and watchlist list" if exists $watchlist{$_};
+for (keys %watchlist){
+	say "Warning *** ticker '$_' exists both in ignorelist and watchlist list" if exists $ignorelist{$_};
 }
