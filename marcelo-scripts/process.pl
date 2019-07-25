@@ -30,10 +30,11 @@ my %scanner_list_up;
 my @not_in_watchlist;
 my (@watchlist_files,@ignore_files,@up_files,@down_files);
 
+say "USAGE:  $0  --watch <file> ... --ignore <file> ... --up <file> ... --down <file> ..."  if @ARGV <= 1;
+
 GetOptions('watch=s{1,}' => \@watchlist_files, 'ignore=s{1,}' => \@ignore_files, 'up=s{1,}' => \@up_files, 'down=s{1,}' => \@down_files);
 
 
-say "USAGE:  $0  --watch <file> ... --ignore <file> ... --up <file> ... --down <file> ..."  if @ARGV <= 1;
 
 sub watch_ignore {
 	my (%list, @list);
