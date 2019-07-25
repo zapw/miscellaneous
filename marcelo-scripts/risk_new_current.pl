@@ -50,11 +50,12 @@ while (1){
 	 	$raw_risk_percnt = (1 - abs($stop_price/$sect_price)) * 100;
 	 	$raw_profit_percnt = (abs($tget_price/$sect_price) - 1) * 100;
 
-		if ($raw_profit_percnt/$raw_risk_percnt < 3){
+		if ($raw_profit_percnt/$raw_risk_percnt < 5){
 			my $truncate = '';
 			$truncate = 1 if (length (substr $sect_price, index($sect_price, '.') + 1) == 2);
-	 		$sect_price = ($tget_price + 3 * $stop_price)/4;
+	 		$sect_price = ($tget_price + 5 * $stop_price)/6;
 			$sect_price = substr $sect_price, 0, index($sect_price, '.') + 3 if $truncate;
+			$sect_price -= 0.01 if $raw_profit_percnt/$raw_risk_percnt < 5;
  			if ($sect_price > $stop_price){
 				say "WARNING: risk/profit ratio is 1 to ", $raw_profit_percnt/$raw_risk_percnt, "\nLowering entry price to '$sect_price'";
 			}else{
@@ -63,6 +64,16 @@ while (1){
 			}
 	 		$raw_risk_percnt = (1 - abs($stop_price/$sect_price)) * 100;
 	 		$raw_profit_percnt = (abs($tget_price/$sect_price) - 1) * 100;
+		}elsif($raw_profit_percnt/$raw_risk_percnt >= 5.7){
+			my $truncate = '';
+			$truncate = 1 if (length (substr $sect_price, index($sect_price, '.') + 1) == 2);
+	 		$sect_price = ($tget_price + 5.7 * $stop_price)/6.7;
+			$sect_price = substr $sect_price, 0, index($sect_price, '.') + 3 if $truncate;
+			$sect_price += 0.01 if $raw_profit_percnt/$raw_risk_percnt >= 5.7;
+			say "WARNING: risk/profit ratio is 1 to ", $raw_profit_percnt/$raw_risk_percnt, "\nIncreasing entry price to '$sect_price'";
+			$raw_risk_percnt = (1 - abs($stop_price/$sect_price)) * 100;
+	 		$raw_profit_percnt = (abs($tget_price/$sect_price) - 1) * 100;
+
 		}
  	}
 
