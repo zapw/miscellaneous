@@ -27,17 +27,20 @@ use feature 'say';
 use Scalar::Util 'looks_like_number';
 use bignum;
 
-my ($pos_portfolio,$sect_price,$stop_price,$buy_or_sell,$percnt_cur,$tget_price,$raw_risk_percnt,$cash,$raw_profit_percnt,$risk_ratio,$real_profit_percnt,$risk_cash,$pos_orderentry); 
+my ($pos_portfolio,$sect_price,$stop_price,$buy_or_sell,$percnt_cur,$tget_price,$raw_risk_percnt,$cash,$raw_profit_percnt,$risk_ratio,$real_profit_percnt,$risk_cash,$pos_orderentry,$raw); 
 
 my $term = Term::ReadLine->new('Foobar');
 
 while (1){
 	{
   	no warnings "uninitialized";
-  	($pos_portfolio,$sect_price,$stop_price,$tget_price,$buy_or_sell) = undef;
+  	($pos_portfolio,$sect_price,$stop_price,$tget_price,$buy_or_sell,$raw) = undef;
   	$cash = $term->readline('Enter cash amount: ') until looks_like_number($cash) and $cash > 0;
   	$percnt_cur = $term->readline('Enter current working risk percent: ') until looks_like_number($percnt_cur) and $percnt_cur > 0;
-  	$sect_price = $term->readline('Enter security price: ') until looks_like_number($sect_price) and $sect_price > 0;
+	until (looks_like_number($sect_price) and $sect_price > 0){
+  		$sect_price = $term->readline('Enter security price: ');
+		$raw = 1 if $sect_price =~ s/r$//;
+	}
   	$stop_price = $term->readline('Enter stop loss price: ') until looks_like_number($stop_price) and $stop_price > 0;
   	$tget_price = $term->readline('Enter profit target: ') until looks_like_number($tget_price) and $tget_price > 0;
   	$buy_or_sell = $term->readline('Enter buy or sell: ') until $buy_or_sell eq 'buy' or $buy_or_sell eq 'sell';
@@ -67,7 +70,7 @@ while (1){
 				say "WARNING: risk/profit ratio is 1 to ", $raw_profit_percnt/$raw_risk_percnt, "\nTried lowering entry price to '$sect_price' but entry price is less than stop loss";
 				next;
 			}
-		}elsif($raw_profit_percnt/$raw_risk_percnt >= 5.7){
+		}elsif($raw_profit_percnt/$raw_risk_percnt >= 5.7 && !$raw){
 			my $truncate = '';
 			$truncate = 1 if (length (substr $sect_price, index($sect_price, '.') + 1) == 2);
 	 		$sect_price = ($tget_price + 5.7 * $stop_price)/6.7;
