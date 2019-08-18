@@ -27,20 +27,20 @@ use Getopt::Long;
 my (%watchlist, %ignorelist);
 my %scanner_list_down;
 my %scanner_list_up;
+my %negate_list;
 my @not_in_watchlist;
-my (@watchlist_files,@ignore_files,@up_files,@down_files);
+my (@watchlist_files,@ignore_files,@up_files,@down_files,@negate_files);
 
 say "USAGE:  $0  --watch <file> ... --ignore <file> ... --up <file> ... --down <file> ..."  if @ARGV <= 1;
 
-GetOptions('watch=s{1,}' => \@watchlist_files, 'ignore=s{1,}' => \@ignore_files, 'up=s{1,}' => \@up_files, 'down=s{1,}' => \@down_files);
-
+GetOptions('watch=s{1,}' => \@watchlist_files, 'ignore=s{1,}' => \@ignore_files, 'up=s{1,}' => \@up_files, 'down=s{1,}' => \@down_files, 'negate=s{1,}' => \@negate_files);
 
 
 sub watch_ignore {
 	my (%list, @list);
 	for (my $i=0; $i < @_; $i++){
 		open (my $handler, '<', $_[$i]) or die "Unable to open $_[$i] $!";
-		@list = <$handler> =~ m/,?\w+:(\w+)/g;
+		@list = <$handler> =~ m/:(\S+?)(?:,|$)/g;
 		@list{@list} = 1;
 	}
 	return %list;
@@ -48,12 +48,20 @@ sub watch_ignore {
 
 sub up_down {
 	my %scanner_list;
-	for (my $i=0; $i < @_; $i++){
+	my $stockname;
+	for (my $i=0; $i < (@_ - 1); $i++){
 		open (my $handler, '<', $_[$i]) or die "Unable to open $_[$i] $!";
 		my @tmp_list_up = <$handler>;
 		shift @tmp_list_up;
 
-		$scanner_list{(split /(\s+|,)/)[0]} = 1 for @tmp_list_up;
+		#$scanner_list{(split /(\s+|,)/)[0]} = 1 for @tmp_list_up;
+		for (@tmp_list_up){
+			$stockname = (split /$_[-1]/)[0];
+			$stockname = join '.', split " ", $stockname;
+
+			#$scanner_list{(split /(\s+|,)/)[0]} = 1 for @tmp_list_up;
+			$scanner_list{$stockname} = 1;
+		}
 	}
 	return %scanner_list;
 }
@@ -61,12 +69,14 @@ sub up_down {
 %watchlist = watch_ignore(@watchlist_files);
 %ignorelist = watch_ignore(@ignore_files);
 
-%scanner_list_up = up_down(@up_files);
-%scanner_list_down = up_down(@down_files);
+%scanner_list_up = up_down(@up_files,'\S+,');
+%scanner_list_down = up_down(@down_files,'\S+,');
+
+%negate_list = up_down(@negate_files,',');
 
 
 for (keys %scanner_list_down){
-	next if exists $watchlist{$_} || exists $ignorelist{$_};
+	next if exists $watchlist{$_} || exists $ignorelist{$_} || exists $negate_list{$_};
 	push @not_in_watchlist, $_;
 }
 print "The following stocks are not in the watchlist:\n---\n", join "\n",  @not_in_watchlist, "---\n" if @not_in_watchlist;
