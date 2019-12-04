@@ -25,28 +25,34 @@ use Getopt::Long;
 use bignum;
 
 
-my $risk_ratio;
+my $risk_ratio = 1;
 my $risk_percent = 7;
+my $risk_percent_weak = 3.5;
 my $cash_multiplier = 1000;
 my $cash_divider = 10;
+my $half = 0;
 my (@cash,$entry,$stop);
 
 sub exit_fun {
-	say "USAGE:  $0  --cash <num> ... --entry <num> ... --stop <num>";
+	say "USAGE:  $0  --cash <num> ... --entry <num> ... --stop <num> [--half]";
 	exit 1;
 }
+
 exit_fun if @ARGV <= 1;
 
-GetOptions('cash=f{1,}' => \@cash, 'entry=f{1,1}' => \$entry, 'stop=f{1,1}' => \$stop);
 
+GetOptions('cash=f{1,}' => \@cash, 'entry=f{1,1}' => \$entry, 'stop=f{1,1}' => \$stop, 'half' => \$half);
+
+$risk_percent = $risk_percent_weak if $half == 1;
 my $pos_orderentry;
 my $percent_calculated;
 my $risk_cash;
 my $total = 0;
 my $cash_per_trade;
 $total += $_ for(@cash);
+$total *= $cash_multiplier;
 
-$cash_per_trade = $total*$cash_multiplier / $cash_divider;
+$cash_per_trade = $total / $cash_divider;
 
 
 if ($entry < $stop){
@@ -57,13 +63,17 @@ if ($entry < $stop){
 
 
 
-if ($percent_calculated <= $risk_percent){
-	$risk_ratio = 1;
-}else{
+if ($percent_calculated < $risk_percent){
+	$risk_ratio = 1 / $risk_percent / $percent_calculated;
+}elsif ($percent_calculated > $risk_percent){
 		$risk_ratio = $percent_calculated / $risk_percent;
 }
 
 $risk_cash = $cash_per_trade / $risk_ratio;
+
+my $half_cash = $total / 2;
+$risk_cash = $half_cash if $risk_cash > $half_cash;
+
 $pos_orderentry = int($risk_cash/$entry);
 
 say "Position is $pos_orderentry";
