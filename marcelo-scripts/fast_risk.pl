@@ -62,17 +62,19 @@ if ($entry < $stop){
 }
 
 
-
-if ($percent_calculated < $risk_percent){
-	$risk_ratio = 1 / $risk_percent / $percent_calculated;
-}elsif ($percent_calculated > $risk_percent){
+#risk only 10 percent of $total money don't put more money because stop loss is less than $risk_percent
+#if ($percent_calculated < $risk_percent){ 
+#	$risk_ratio = 1 / $risk_percent / $percent_calculated;
+#}elsif ($percent_calculated > $risk_percent){
+if ($percent_calculated > $risk_percent){
 		$risk_ratio = $percent_calculated / $risk_percent;
 }
 
 $risk_cash = $cash_per_trade / $risk_ratio;
 
-my $half_cash = $total / 2;
-$risk_cash = $half_cash if $risk_cash > $half_cash;
+#don't care about actual putting half of 1/10 of money, care more about putting half of the usual risk on a trade
+#my $half_cash = $total / 2;
+#$risk_cash = $half_cash if $risk_cash > $half_cash;
 
 $pos_orderentry = int($risk_cash/$entry);
 
