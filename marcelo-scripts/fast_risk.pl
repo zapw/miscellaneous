@@ -29,7 +29,7 @@ my $risk_ratio = 1;
 my $risk_percent = 7;
 my $risk_percent_weak = 3.5;
 my $cash_multiplier = 1000;
-my $cash_divider = 10;
+my $cash_divider = 7; # 1/7 of total cash per position
 my $half = 0;
 my (@cash,$entry,$stop);
 
@@ -70,6 +70,9 @@ if ($percent_calculated > $risk_percent){
 		$risk_ratio = $percent_calculated / $risk_percent;
 }
 
+#say " percent calculated is $percent_calculated";
+#say " risk percent is $risk_percent";
+#say " risk_ratio is $risk_ratio";
 $risk_cash = $cash_per_trade / $risk_ratio;
 
 #don't care about actual putting half of 1/10 of money, care more about putting half of the usual risk on a trade

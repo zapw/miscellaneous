@@ -1,9 +1,9 @@
 #!/usr/bin/perl 
 #===============================================================================
 #
-#         FILE:  bid_ask.pl
+#         FILE:  trades.pl
 #
-#        USAGE:  ./bid_ask.pl  
+#        USAGE:  ./trades.pl  
 #
 #  DESCRIPTION:  
 #
@@ -25,16 +25,15 @@ my @bid;
 my $bid;
 my $ask;
 my @ask;
-my $volume;
-my $i = 0;
 my $tmp;
+my $trades;
+my @trades;
+my $i = 0;
 
 while (<>){
-	$tmp = ($_ =~  tr/SIO/510/r);
-	if ($tmp =~ m/^(\d+)\s(?:x|X)\s(\d+)$/){
-		$bid[$i] = $1;
-		$ask[$i] = $2;
-
+        $tmp = ($_ =~  tr/SIO/510/r);
+	if ($tmp =~ m/^(\d+)T$/){
+		$trades[$i] = $1;
 		$i++;
 		next;
 	}elsif ($tmp =~ m/^$/){
@@ -42,8 +41,6 @@ while (<>){
 	}else { die "Unable to parse line '$_'" };
 
 }
-$bid += $_ for @bid;
-$ask += $_ for @ask;
-$volume = $bid + $ask;
+$trades += $_ for @trades;
 
-print "$bid[0] x $ask[0] ---- " . ($bid-$bid[0]-$bid[-1]) . " x " . ($ask-$ask[0]-$ask[-1]) . " ---- $bid[-1] x $ask[-1]\n";
+print "$trades[0] ---- " . ($trades-$trades[0]-$trades[-1]) . " ---- $trades[-1]\n";
