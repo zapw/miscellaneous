@@ -1,0 +1,47 @@
+#!/bin/bash
+
+
+host='localhost'
+user='foo'
+pass='bar'
+quiet='-q'
+conntimeo=10
+
+usage() {
+cat <<EOF
+Usage:
+ $0 [-s server] [-v] [-u username] [-p password] command
+options:
+  -v	    disable quiet mode, print ssh errors and warnings
+  -s	    hostname of server to connect to, by default uses value saved to variable \$host in this script
+  -u	    username to use for the session, by default uses value saved to variable \$user in this script
+  -p	    password to use for the session, by default uses value saved to variable \$pass in this script
+EOF
+exit 1
+}
+
+OPTIND=1
+while getopts "s:vu:p:" opt; do
+    case $opt in
+        s)
+          host=$OPTARG
+          ;;
+        v)
+          quiet=''
+          ;;
+        u)
+          user="$OPTARG"
+          ;;
+        p)
+          pass="$OPTARG"
+          ;;
+      '?')
+          usage
+          ;;
+    esac
+done
+
+shift "$((OPTIND-1))"
+(($#)) || usage
+
+/usr/bin/sshpass -p "$pass" ssh $quiet -o CheckHostIP=no -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o ConnectTimeout="$conntimeo" "$user@$host" "$*"
