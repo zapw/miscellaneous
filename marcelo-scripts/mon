@@ -1,0 +1,15 @@
+#!/usr/bin/perl
+
+
+
+my $cash = 40;
+
+
+my $times = 2*12;
+
+
+for (my $i=1;$i<=$times;$i++){
+    my $win = $cash/7*1.5;
+	$cash += $win;
+	print "Win $win, total cash after win $cash\n";
+}
