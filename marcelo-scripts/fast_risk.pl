@@ -26,8 +26,8 @@ use bignum;
 
 
 my $risk_ratio = 1;
-my $risk_percent = 7;
-my $risk_percent_weak = 3.5;
+my $risk_percent = 5;
+my $risk_percent_weak = $risk_percent/2; 
 my $cash_multiplier = 1000;
 my $cash_divider = 7; # 1/7 of total cash per position
 my $half = 0;
@@ -68,6 +68,7 @@ if ($entry < $stop){
 #}elsif ($percent_calculated > $risk_percent){
 if ($percent_calculated > $risk_percent){
 		$risk_ratio = $percent_calculated / $risk_percent;
+		say "Warning $percent_calculated"."% is larger than $risk_percent"."%, risk divider ($risk_ratio)";
 }
 
 #say " percent calculated is $percent_calculated";
