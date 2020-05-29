@@ -27,20 +27,16 @@ my $ask;
 my @ask;
 my $volume;
 my $i = 0;
-my $tmp;
 
 while (<>){
-	$tmp = ($_ =~  tr/SIO/510/r);
-	if ($tmp =~ m/^(\d+)\s(?:x|X)\s(\d+)$/){
+	while (m/((?:\d|O|I)+)\s*(?:x|X)\s*((?:\d|O|I)+)/g){
 		$bid[$i] = $1;
 		$ask[$i] = $2;
+		$bid[$i] =~ tr/IO/10/;
+		$ask[$i] =~ tr/IO/10/;
 
 		$i++;
-		next;
-	}elsif ($tmp =~ m/^$/){
-		next;
-	}else { die "Unable to parse line '$_'" };
-
+	}
 }
 $bid += $_ for @bid;
 $ask += $_ for @ask;
