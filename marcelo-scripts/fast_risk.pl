@@ -74,6 +74,16 @@ unless ($stop == 0){
 	#say " percent calculated is $percent_calculated";
 	#say " risk percent is $risk_percent";
 	#say " risk_ratio is $risk_ratio";
+} else {
+  $stop = abs($entry/1.1);
+  $stop =~ /(\d+)\./;
+  my $digit = $1;
+  if ($digit > 0){
+	$stop =~ s/\.(\d\d)\d*/\.$1/;
+  }else{
+	$stop =~ s/\.(\d\d\d\d)\d*/\.$1/;
+  }
+  say "stop is $stop";
 }
 $risk_cash = $cash_per_trade / $risk_ratio;
 
