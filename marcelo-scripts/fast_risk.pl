@@ -75,7 +75,7 @@ unless ($stop == 0){
 	#say " risk percent is $risk_percent";
 	#say " risk_ratio is $risk_ratio";
 } else {
-  $stop = abs($entry/1.1);
+  $stop = abs($entry*(1-0.10));
   $stop =~ /(\d+)\./;
   my $digit = $1;
   if ($digit > 0){
