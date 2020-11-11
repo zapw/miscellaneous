@@ -26,11 +26,13 @@ use bignum;
 
 
 my $risk_ratio = 1;
-my $risk_percent = 10;
+my $original_risk_ratio = $risk_ratio;
+my $risk_percent = 2;
 my $risk_percent_weak = $risk_percent/2; 
 my $cash_multiplier = 1000;
 my $cash_divider = 10; # 1/10 of total cash per position
 my $half = 0;
+my $large = 0;
 my (@cash,$entry,$stop);
 
 sub exit_fun {
@@ -41,12 +43,15 @@ sub exit_fun {
 exit_fun if @ARGV <= 1;
 
 
-GetOptions('cash=f{1,}' => \@cash, 'entry=f{1,1}' => \$entry, 'stop:f{1,1}' => \$stop, 'half' => \$half);
+GetOptions('cash=f{1,}' => \@cash, 'entry=f{1,1}' => \$entry, 'stop:f{1,1}' => \$stop, 'half' => \$half, 'large' => \$large);
 
 $risk_percent = $risk_percent_weak if $half == 1;
+$cash_divider = 4 if $large == 1; # 1/4 of total cash per position
 my $pos_orderentry;
+my $original_pos_orderentry;
 my $percent_calculated;
 my $risk_cash;
+my $original_risk_cash;
 my $total = 0;
 my $cash_per_trade;
 $total += $_ for(@cash);
@@ -66,9 +71,12 @@ unless ($stop == 0){
 	#if ($percent_calculated < $risk_percent){ 
 	#	$risk_ratio = 1 / $risk_percent / $percent_calculated;
 	#}elsif ($percent_calculated > $risk_percent){
+        $percent_calculated = $percent_calculated / 100 * $cash_per_trade / $total * 100;
 	if ($percent_calculated > $risk_percent){
 			$risk_ratio = $percent_calculated / $risk_percent;
-			say "Warning $percent_calculated"."% is larger than $risk_percent"."%, risk divider ($risk_ratio)";
+			printf "%s%.2f%s%.2f%s%.2f%s\n", "Warning total cash risk with stoploss ", $percent_calculated, "% is larger than ", $risk_percent, "%. Risk divider set to (", $risk_ratio, ")";
+	}elsif($percent_calculated < $risk_percent ){
+		printf "%s%.2f%s\n", "Total cash risk with stoploss is ", $percent_calculated, "%";
 	}
 
 	#say " percent calculated is $percent_calculated";
@@ -87,10 +95,16 @@ unless ($stop == 0){
 }
 $risk_cash = $cash_per_trade / $risk_ratio;
 
-#don't care about actual putting half of 1/10 of money, care more about putting half of the usual risk on a trade
-#my $half_cash = $total / 2;
-#$risk_cash = $half_cash if $risk_cash > $half_cash;
+if ($original_risk_ratio != $risk_ratio) {
+	$original_risk_cash = $cash_per_trade / $original_risk_ratio;
+	$original_pos_orderentry = int($original_risk_cash/$entry);
+	say "Original Position is $original_pos_orderentry";
+	say "Original USD ", $original_pos_orderentry * $entry;
+}
 
 $pos_orderentry = int($risk_cash/$entry);
 
-say "Position is $pos_orderentry";
+
+say "\n\nActual Position is $pos_orderentry";
+say "Actual USD ", $pos_orderentry * $entry;
+printf "%s%.2f%s", "Risking ", $pos_orderentry * $entry / $total * 100, " percent of total USD cash $total";
