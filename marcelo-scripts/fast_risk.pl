@@ -30,7 +30,7 @@ my $original_risk_ratio = $risk_ratio;
 my $risk_percent = 2;
 my $risk_percent_weak = $risk_percent/2; 
 my $cash_multiplier = 1000;
-my $cash_divider = 10; # 1/10 of total cash per position
+my $cash_divider = 7; # 1/7 of total cash per position
 my $half = 0;
 my $large = 0;
 my (@cash,$entry,$stop);
@@ -101,10 +101,12 @@ if ($original_risk_ratio != $risk_ratio) {
 	say "Original Position is $original_pos_orderentry";
 	say "Original USD ", $original_pos_orderentry * $entry;
 }
+say "Risk divider $cash_divider";
 
 $pos_orderentry = int($risk_cash/$entry);
 
-
-say "\n\nActual Position is $pos_orderentry";
+say "\n\nActual Position is ", $pos_orderentry;
 say "Actual USD ", $pos_orderentry * $entry;
-printf "%s%.2f%s", "Risking ", $pos_orderentry * $entry / $total * 100, " percent of total USD cash $total";
+printf "%s%.2f%s%.3f\n", "Risking ", $pos_orderentry * $entry / $total * 100, "% of total USD cash ", $total / $cash_multiplier;
+printf "%s%.3f\n", "Left USD cash ", ($total - $pos_orderentry * $entry) / $cash_multiplier;
+say "Multiplier is $cash_multiplier";
