@@ -27,10 +27,10 @@ use bignum;
 
 my $risk_ratio = 1;
 my $original_risk_ratio = $risk_ratio;
-my $risk_percent = 2;
+my $risk_percent = 0.7;
 my $risk_percent_weak = $risk_percent/2; 
 my $cash_multiplier = 1000;
-my $cash_divider = 7; # 1/7 of total cash per position
+my $cash_divider = 10; # 1/10 of total cash per position
 my $half = 0;
 my $large = 0;
 my (@cash,$entry,$stop);
@@ -59,6 +59,9 @@ $total *= $cash_multiplier;
 
 $cash_per_trade = $total / $cash_divider;
 
+printf "%s%.3f%s%.2f%s\n", "Total cash divider: ",$cash_divider, " or ", 1/$cash_divider*100, "%";
+printf "%s%d\n\n", "Cash for trade: ", $cash_per_trade;
+
 unless ($stop == 0){
 	if ($entry < $stop){
 		$percent_calculated = (abs($stop/$entry) - 1) * 100;
@@ -67,10 +70,6 @@ unless ($stop == 0){
 	}
 
 
-	#risk only 10 percent of $total money don't put more money because stop loss is less than $risk_percent
-	#if ($percent_calculated < $risk_percent){ 
-	#	$risk_ratio = 1 / $risk_percent / $percent_calculated;
-	#}elsif ($percent_calculated > $risk_percent){
         $percent_calculated = $percent_calculated / 100 * $cash_per_trade / $total * 100;
 	if ($percent_calculated > $risk_percent){
 			$risk_ratio = $percent_calculated / $risk_percent;
@@ -79,9 +78,6 @@ unless ($stop == 0){
 		printf "%s%.2f%s\n", "Total cash risk with stoploss is ", $percent_calculated, "%";
 	}
 
-	#say " percent calculated is $percent_calculated";
-	#say " risk percent is $risk_percent";
-	#say " risk_ratio is $risk_ratio";
 } else {
   $stop = abs($entry*(1-0.10));
   $stop =~ /(\d+)\./;
@@ -101,12 +97,11 @@ if ($original_risk_ratio != $risk_ratio) {
 	say "Original Position is $original_pos_orderentry";
 	say "Original USD ", $original_pos_orderentry * $entry;
 }
-say "Risk divider $cash_divider";
 
 $pos_orderentry = int($risk_cash/$entry);
 
-say "\n\nActual Position is ", $pos_orderentry;
-say "Actual USD ", $pos_orderentry * $entry;
-printf "%s%.2f%s%.3f\n", "Risking ", $pos_orderentry * $entry / $total * 100, "% of total USD cash ", $total / $cash_multiplier;
+say "\n\nNew Position is ", $pos_orderentry;
+say "New USD ", $pos_orderentry * $entry;
+printf "%s%.2f%s%.3f\n", "New cash for trade: ", $pos_orderentry * $entry / $total * 100, "% of total USD cash ", $total / $cash_multiplier;
 printf "%s%.3f\n", "Left USD cash ", ($total - $pos_orderentry * $entry) / $cash_multiplier;
 say "Multiplier is $cash_multiplier";
