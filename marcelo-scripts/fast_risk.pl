@@ -26,8 +26,9 @@ use bignum;
 
 
 my $risk_ratio = 1;
+my $risk_percent_override;
 my $original_risk_ratio = $risk_ratio;
-my $risk_percent = 0.7;
+my $risk_percent = 1.6;
 my $risk_percent_weak = $risk_percent/2; 
 my $cash_multiplier = 1000;
 my $cash_divider = 10; # 1/10 of total cash per position
@@ -43,10 +44,11 @@ sub exit_fun {
 exit_fun if @ARGV <= 1;
 
 
-GetOptions('cash=f{1,}' => \@cash, 'entry=f{1,1}' => \$entry, 'stop:f{1,1}' => \$stop, 'half' => \$half, 'large' => \$large);
+GetOptions('cash=f{1,}' => \@cash, 'entry=f{1,1}' => \$entry, 'stop:f{1,1}' => \$stop, 'half' => \$half, 'large' => \$large, 'risk:f{1,1}' => \$risk_percent_override);
 
 $risk_percent = $risk_percent_weak if $half == 1;
-$cash_divider = 4 if $large == 1; # 1/4 of total cash per position
+$cash_divider = 6 if $large == 1; # 1/6 of total cash per position
+$risk_percent = $risk_percent_override if $risk_percent_override > 0;
 my $pos_orderentry;
 my $original_pos_orderentry;
 my $percent_calculated;
