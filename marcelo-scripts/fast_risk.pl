@@ -106,4 +106,7 @@ say "\n\nNew Position is ", $pos_orderentry;
 say "New USD ", $pos_orderentry * $entry;
 printf "%s%.2f%s%.3f\n", "New cash for trade: ", $pos_orderentry * $entry / $total * 100, "% of total USD cash ", $total / $cash_multiplier;
 printf "%s%.3f\n", "Left USD cash ", ($total - $pos_orderentry * $entry) / $cash_multiplier;
-say "Multiplier is $cash_multiplier";
+say "Multiplier is $cash_multiplier\n\n";
+say "entry $entry, stop $stop";
+print "risk $risk_percent% ",  "of ", $total / $cash_multiplier;
+printf "%s%.2f%s(%d)\n", ",position ", $pos_orderentry * $entry / $total * 100, "%",$pos_orderentry;
