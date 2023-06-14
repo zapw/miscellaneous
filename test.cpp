@@ -1,12 +1,6 @@
-int hummus(int a, int b){
-    return a + b;
-}
+#include <iostream>
 
-int hummus(int a, float b){
-    //int c = hummus(3,5);
-    return  hummus(3,5);
-    //c += 10;
-    //return c;
+int main(){
+   int f { ( 3 , 1 , 4, 212, 22 ) };
+   std::cout << f;
 }
-    
-
